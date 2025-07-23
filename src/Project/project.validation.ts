@@ -30,14 +30,13 @@ class ProjectValidation {
     validatorMiddleware,
   ];
   create=[
-    param('id').isMongoId().withMessage("Invaild Id"),
-    body('name').isEmpty().withMessage("this field is required").custom(async(val)=>{
+    body('name').notEmpty().withMessage("this field is required").custom(async(val)=>{
         const project= await projectSchema.findOne({name:val})
         if(project) throw new Error("this Project Exits already")
         return true
     }),
-    body('color').isEmpty().withMessage("this field cann't be Empty"),
-    body('duration').isEmpty().withMessage("this field cann't be Empty"),
+    body('color').notEmpty().withMessage("this field cann't be Empty"),
+    body('duration').notEmpty().withMessage("this field cann't be Empty"),
     validatorMiddleware
     ]
 }

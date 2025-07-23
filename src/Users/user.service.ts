@@ -29,10 +29,7 @@ class UserService{
         res.status(201).json({data:newUser.username,message:'User registered successfully'})
     })
 
-    logout=asyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
-        res.clearCookie('token')
-        res.status(200).json({message:'Logged out successfully'})
-    })
+   
 }
 const userService=new UserService()
 export default userService  

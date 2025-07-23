@@ -5,7 +5,7 @@ const Usersrouter=Router()
 
 Usersrouter.post('/register',userValidation.register,userService.register)
 Usersrouter.post('/login',userValidation.login,userService.login)
-Usersrouter.post('/logout',userService.logout)
+
 
 export default Usersrouter
 

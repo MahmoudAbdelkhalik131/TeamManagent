@@ -20,10 +20,6 @@
 
 ## 🛠️ What Needs Improvement / Next Steps
 
-1. **JWT Token Generation on Login**
-
-   - Use the `jsonwebtoken` library to generate a JWT on successful login.
-   - Send the token to the client (in the response body or as an HTTP-only cookie).
 
 2. **Authentication Middleware**
 
@@ -46,9 +42,6 @@
 
 ---
 
-## 📅  Today Plan
-
-- Implement JWT token generation in the login API.
 
 ## Next Day Plan
 

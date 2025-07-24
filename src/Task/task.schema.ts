@@ -8,6 +8,8 @@ const TaskSchema = new mongoose.Schema<Task>(
     color: { type: String },
     description: { type: String },
     project: { type: mongoose.Schema.Types.ObjectId, ref: "project" },
+    username: { type: String, required: true },
+    status: { type: String, required: true, enum: ["pending", "in-progress", "completed"] },
   },
   { timestamps: true }
 );

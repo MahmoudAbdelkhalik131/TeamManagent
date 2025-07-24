@@ -6,5 +6,7 @@ interface Task extends Document{
      readonly project:Project,
      readonly color:string ,
      readonly description:string ,
+     readonly username:string,
+     readonly status:string,
 }
 export default Task

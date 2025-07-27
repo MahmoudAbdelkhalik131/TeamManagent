@@ -1,6 +1,7 @@
 import { body, param } from "express-validator";
 import projectSchema from "./project.schema";
 import validatorMiddleware from "../middlewares/validation.middleware";
+import Project from "./project.interface";
 
 class ProjectValidation {
   updateOne = [
@@ -22,7 +23,15 @@ class ProjectValidation {
     validatorMiddleware,
   ];
   getone = [
-    param("id").isMongoId().withMessage("Invaild Id"),
+    param("id").notEmpty().isMongoId().withMessage("Invaild Id")
+    .custom(async(val,{req})=>{
+      const project:Project|null=await projectSchema.findById(val)
+      if(!project)
+      {
+        return new Error("There NO PROJECT")
+      }
+      return true
+    }),
     validatorMiddleware,
   ];
   deleteOne = [

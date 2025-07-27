@@ -26,8 +26,14 @@ class ProjectServices {
   getOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
        const project:Project|null =await projectSchema.findById(req.params.id);
+       if(!project){
+        return next(new Error("AAAAAAAA"))
+       }
+       req.projectId=req.params.id
+       console.log(req.projectId);
       res.status(200).json({ data:project });
     }
+
   );
   updateOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {

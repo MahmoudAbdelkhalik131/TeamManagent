@@ -14,8 +14,7 @@ class TaskServices {
   );
   getUserTasks = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-        const username = req.body.username;
-       const usernameExits = await userSchema.findOne({ username: username });
+       const usernameExits = await userSchema.findOne({ username: req.body.username });
        if (!usernameExits) {
          return next(new Error("User not found"));
        }
@@ -25,23 +24,40 @@ class TaskServices {
     }
   );
   getProjectTask=AsyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
-     const projectId=req.params.projectId
-    const Project:Project|null=await projectSchema.findById(projectId)
+     req.body.project=req.projectId
+    const Project:Project|null=await projectSchema.findById(req.body.project)
     if(!Project){
       return next(new Error("No project found"))
     }
     // we can do that in the validation section 
-    const Task :Task[]= await taskSchema.find({project:projectId})
+    const Task :Task[]= await taskSchema.find({project:req.body.project})
     res.status(200).json({data:Task})
   })
   create=AsyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
-    const task:Task=await taskSchema.create(req.body)
+    console.log(req.projectId)
+    const task:Task=await taskSchema.create({
+      project: req.projectId,
+      username: req.body.username,
+      name: req.body.name,
+      duration: req.body.duration,
+      color: req.body.color || "#000000", // default color if not provided
+      description: req.body.description,
+    })
+    console.log(req.projectId)
     res.status(201).json({data:task})
   })
   delete=AsyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
     await taskSchema.findByIdAndDelete(req.params.id)
-    res.status(404).json({message:"Task deleted successfully"})
+    res.status(200).json({message:"Task deleted successfully"})
   })
-
+   updateTask= AsyncHandler(async(req:Request,res:Response,next:NextFunction)=>{
+    const task:Task|null=await taskSchema.findById(req.params.id)
+    if(!task){
+      return next(new Error("No Task "))
+    }
+    const updatedTask:Task|null=await taskSchema.findByIdAndUpdate(req.params.id,req.body,{new:true})
+    res.status(200).json({data:updatedTask})
+   })
 }
-
+const taskServices=new TaskServices()
+export default taskServices

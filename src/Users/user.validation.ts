@@ -1,5 +1,3 @@
-import {Request,Response,NextFunction} from 'express'
-import asyncHandler from 'express-async-handler'
 import { body, } from 'express-validator'
 import userSchema from './user.schema'
 import Users from './user.interface'

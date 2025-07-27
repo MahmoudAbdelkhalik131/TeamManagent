@@ -1,0 +1,53 @@
+# TeamManager Project Line Count
+
+## Core Files:
+config.ts: 12 lines
+main.ts: 13 lines
+src/index.ts: 17 lines
+
+## Users Module:
+src/Users/user.interface.ts: 9 lines
+src/Users/user.schema.ts: 9 lines
+src/Users/user.service.ts: 36 lines
+src/Users/user.route.ts: 12 lines
+src/Users/user.validation.ts: 47 lines
+
+## Project Module:
+src/Project/project.interface.ts: 7 lines
+src/Project/project.schema.ts: 9 lines
+src/Project/project.services.ts: 45 lines
+src/Project/project.routes.ts: 13 lines
+src/Project/project.validation.ts: 53 lines
+
+## Task Module:
+src/Task/task.interface.ts: 13 lines
+src/Task/task.schema.ts: 28 lines
+src/Task/task.services.ts: 63 lines
+src/Task/task.routes.ts: 16 lines
+src/Task/task.validation.ts: 117 lines
+
+## Middleware:
+src/auth/auth.middleware.ts: 54 lines
+src/middlewares/Tokens.ts: 13 lines
+src/middlewares/validation.middleware.ts: 13 lines
+
+## Configuration:
+package.json: 31 lines
+tsconfig.json: 112 lines
+
+## Documentation:
+PROJECT_REPORT.md: 400 lines
+SETUP_INSTRUCTIONS.md: 200 lines
+README.md: 50 lines
+src/Users/auth_progress.md: 55 lines
+
+## Total Count:
+Core Files: 42 lines
+Users Module: 113 lines
+Project Module: 127 lines
+Task Module: 237 lines
+Middleware: 80 lines
+Configuration: 143 lines
+Documentation: 705 lines
+
+TOTAL LINES: 1,447 lines 

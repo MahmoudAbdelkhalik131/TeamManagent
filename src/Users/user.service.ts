@@ -24,6 +24,7 @@ class UserService{
         const newUser:Users=await userSchema.create({
             username:req.body.username,
             password:bcrypt.hashSync(req.body.password,10),
+            role:req.body.role
         })
         await newUser.save()
         res.status(201).json({data:newUser.username,message:'User registered successfully'})

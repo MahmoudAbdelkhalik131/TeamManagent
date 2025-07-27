@@ -1,7 +1,8 @@
 import mongoose from "mongoose"
 
-const Connection=()=>{
-  try{  mongoose.connect(process.env.DBLINK!)
+const Connection=async()=>{
+  try{  
+    await mongoose.connect(process.env.DBLINK!)
     console.log("connected to dataBase")
   }
   catch(e){

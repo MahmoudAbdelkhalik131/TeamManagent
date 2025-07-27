@@ -13,10 +13,12 @@ class Auth {
       if (!decoded) {
         return res.status(401).json({ message: "Unauthorized" });
       }
+       
       console.log(decoded.payload.role); // Attach the decoded token to the request object
     } catch (err: any) {
       throw new Error(err);
     }
+    
     next();
   }
   allowedRoles(roles: string[]) {
@@ -25,19 +27,23 @@ class Auth {
       if (!token) {
         return res.status(401).json({ message: "Unauthorized1" });
       }
-      try {
+      
         const decoded: any = Token.verifyToken(token);
+          console.log(decoded.payload.role+" "+decoded.payload.username)
         if (!decoded) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-
+         
+        
         if (roles.includes(decoded.payload.role)) {
           return next();
         }
+              return res.status(403).json({ message: "Forbidden" });
+
         // Attach the decoded token to the request object
-      } catch (err: any) {}
-      return res.status(403).json({ message: "Forbidden" });
-    };
+      } 
+     
+    
   }
 
   // Extract the token from the Authorization header

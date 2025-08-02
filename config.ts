@@ -1,12 +1,11 @@
-import mongoose from "mongoose"
+import mongoose from "mongoose";
 
-const Connection=async()=>{
-  try{  
-    await mongoose.connect(process.env.DBLINK!)
-    console.log("connected to dataBase")
+const Connection = async () => {
+  try {
+    await mongoose.connect(process.env.DBLINK!);
+    console.log("connected to dataBase");
+  } catch (e) {
+    console.log(e);
   }
-  catch(e){
-    console.log(e)
-  }
-}
-export default Connection
+};
+export default Connection;

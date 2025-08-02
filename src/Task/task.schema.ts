@@ -18,10 +18,10 @@ const TaskSchema = new mongoose.Schema<Task>(
   },
   { timestamps: true }
 );
-TaskSchema.pre<Task>(/^find/, function (next) {
-  this.populate({ path: "project", select: "name" });
-  next();
-});
+// TaskSchema.pre<Task>(/^find/, function (next) {
+//   this.populate({ path: "project", select: "name" });
+//   next();
+// });
 const taskSchema = mongoose.model<Task>("task", TaskSchema);
 
 export default taskSchema;

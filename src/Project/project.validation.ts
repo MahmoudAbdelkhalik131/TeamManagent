@@ -23,31 +23,36 @@ class ProjectValidation {
     validatorMiddleware,
   ];
   getone = [
-    param("id").notEmpty().isMongoId().withMessage("Invaild Id")
-    .custom(async(val,{req})=>{
-      const project:Project|null=await projectSchema.findById(val)
-      if(!project)
-      {
-        return new Error("There NO PROJECT")
-      }
-      return true
-    }),
+    param("id")
+      .notEmpty()
+      .isMongoId()
+      .withMessage("Invaild Id")
+      .custom(async (val, { req }) => {
+        const project: Project | null = await projectSchema.findById(val);
+        if (!project) {
+          return new Error("There NO PROJECT");
+        }
+        return true;
+      }),
     validatorMiddleware,
   ];
   deleteOne = [
     param("id").isMongoId().withMessage("Invaild Id"),
     validatorMiddleware,
   ];
-  create=[
-    body('name').notEmpty().withMessage("this field is required").custom(async(val)=>{
-        const project= await projectSchema.findOne({name:val})
-        if(project) throw new Error("this Project Exits already")
-        return true
-    }),
-    body('color').notEmpty().withMessage("this field cann't be Empty"),
-    body('duration').notEmpty().withMessage("this field cann't be Empty"),
-    validatorMiddleware
-    ]
+  create = [
+    body("name")
+      .notEmpty()
+      .withMessage("this field is required")
+      .custom(async (val) => {
+        const project = await projectSchema.findOne({ name: val });
+        if (project) throw new Error("this Project Exits already");
+        return true;
+      }),
+    body("color").notEmpty().withMessage("this field cann't be Empty"),
+    body("duration").notEmpty().withMessage("this field cann't be Empty"),
+    validatorMiddleware,
+  ];
 }
-const projectValidation = new ProjectValidation()
-export default projectValidation
+const projectValidation = new ProjectValidation();
+export default projectValidation;

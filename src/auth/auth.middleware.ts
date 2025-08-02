@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import jwt from "jsonwebtoken";
 import Token from "../middlewares/Tokens";
 
 class Auth {
@@ -13,12 +12,13 @@ class Auth {
       if (!decoded) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-       
-      console.log(decoded.payload.role); // Attach the decoded token to the request object
+      req.CurrentUser = decoded.payload;
+
+      // Attach the decoded token to the request object
     } catch (err: any) {
       throw new Error(err);
     }
-    
+
     next();
   }
   allowedRoles(roles: string[]) {
@@ -27,23 +27,25 @@ class Auth {
       if (!token) {
         return res.status(401).json({ message: "Unauthorized1" });
       }
-      
+      try {
         const decoded: any = Token.verifyToken(token);
-          console.log(decoded.payload.role+" "+decoded.payload.username)
         if (!decoded) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-         
-        
+
+        req.CurrentUser = decoded.payload;
+        // Attach the decoded token to the request object
         if (roles.includes(decoded.payload.role)) {
           return next();
         }
-              return res.status(403).json({ message: "Forbidden" });
+      } catch (error) {
+        return next(error);
+      }
 
-        // Attach the decoded token to the request object
-      } 
-     
-    
+      return res.status(403).json({ message: "Forbidden" });
+
+      // Attach the decoded token to the request object
+    };
   }
 
   // Extract the token from the Authorization header

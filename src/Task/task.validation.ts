@@ -18,46 +18,52 @@ class TaskValidation {
     body("description")
       .notEmpty()
       .withMessage("Please set the description for the task"),
-      body('username').notEmpty()
-      .custom(async ( val,{ req }) => {
-        
+    body("username")
+      .notEmpty()
+      .custom(async (val, { req }) => {
+        // console.log(val)
         const user: Users | null = await userSchema.findOne({
           username: val.toString(),
         });
-        if (!user) {
-          return new Error("Please Log In");
+        if (user === null) {
+          throw new Error("Please Log In");
+        }
+        console.log(user.role);
+        if (user.role === "admin") {
+          throw new Error("Admin cannot have tasks ده انت عمدة");
         }
         return true;
       }),
-      body('project').custom(async(val,{req})=>{
-         const project: Project | null = await projectSchema.findById(
-          req.projectId
-        );
-        if (!project) {
-          return new Error("Select the project First");
-        }
-      }),
+    body("project").custom(async (val, { req }) => {
+      const project: Project | null = await projectSchema.findById(
+        req.projectId
+      );
+      if (!project) {
+        throw new Error("Select the project First");
+      }
+      return true;
+    }),
     validatorMiddleware,
   ];
   getAlluserTask = [
-    body("username").custom(async (val,{ req }) => {
+    body("username").custom(async (val, { req }) => {
       const user: Users | null = await userSchema.findOne({
-        username: val.toString(),
+        username: req.CurrentUser.username,
       });
       if (!user) {
-        return new Error("Please Log In");
+        throw new Error("Please Log In");
       }
       return true;
     }),
     validatorMiddleware,
   ];
   getAllProjectTask = [
-    body("project").custom(async (val,{ req }) => {
-      const project: Project | null = await projectSchema.findById(
-         val.toString()
-      );
-      if (!project) {
-        return new Error("Select the project First");
+    param("projectId").custom(async (val, { req }) => {
+      const task: Task | null = await taskSchema.findOne({
+        project: val.toString(),
+      });
+      if (!task) {
+        throw new Error("Select the project First");
       }
       return true;
     }),
@@ -67,11 +73,12 @@ class TaskValidation {
     param("id")
       .notEmpty()
       .withMessage("Please inter the task Id")
-      .custom(async (val,{ req }) => {
-        const task: Task | null = await taskSchema.findById( val.toString());
+      .custom(async (val, { req }) => {
+        const task: Task | null = await taskSchema.findById(val.toString());
         if (!task) {
-          return new Error("Please Enter a valid Task");
+          throw new Error("Please Enter a valid Task");
         }
+        return true;
       }),
   ];
   update = [
@@ -91,26 +98,43 @@ class TaskValidation {
       .optional()
       .notEmpty()
       .custom(async (val) => {
-        const project: Project | null = await projectSchema.findById( val.toString());
+        const project: Project | null = await projectSchema.findById(
+          val.toString()
+        );
         if (!project) {
-          return new Error("Select the project First");
+          throw new Error("Select the project First");
         }
         return true;
       }),
     body("username")
       .optional()
       .notEmpty()
-      .custom(async (val,{ req }) => {
+      .custom(async (val, { req }) => {
         const user: Users | null = await userSchema.findOne({
-          username:  val.toString(),
+          username: val.toString(),
         });
         if (!user) {
-          return new Error("Please Log In");
+          throw new Error("Please Log In");
         }
         return true;
       }),
     validatorMiddleware,
   ];
+  setId = [
+    param("id")
+      .notEmpty()
+      .isMongoId()
+      .withMessage("Invalid Id")
+      .custom(async (val, { req }) => {
+        const project: Project | null = await projectSchema.findById(
+          val.toString()
+        );
+        if (!project) {
+          throw new Error("Please Enter valid Project Id");
+        }
+        return true;
+      }),
+  ];
 }
-const taskValidation=new TaskValidation()
-export default taskValidation
+const taskValidation = new TaskValidation();
+export default taskValidation;

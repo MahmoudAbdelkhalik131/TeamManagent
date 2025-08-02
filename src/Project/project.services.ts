@@ -15,30 +15,34 @@ class ProjectServices {
       const project: Project = await projectSchema.create(req.body);
       res.status(201).json({ data: project });
     }
-    
   );
   deleteOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-       await projectSchema.findByIdAndDelete(req.params.id);
-      res.status(200).json({ message:"Item deleted succefully" });
+      await projectSchema.findByIdAndDelete(req.params.id);
+      res.status(200).json({ message: "Item deleted succefully" });
     }
   );
   getOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-       const project:Project|null =await projectSchema.findById(req.params.id);
-       if(!project){
-        return next(new Error("AAAAAAAA"))
-       }
-       req.projectId=req.params.id
-       console.log(req.projectId);
-      res.status(200).json({ data:project });
+      const project: Project | null = await projectSchema.findById(
+        req.params.id
+      );
+      if (!project) {
+        return next(new Error("AAAAAAAA"));
+      }
+      req.projectId = req.params.id;
+      console.log(req.projectId);
+      res.status(200).json({ data: project });
     }
-
   );
   updateOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-       const project:Project|null =await projectSchema.findByIdAndUpdate({_id:req.params.id},req.body,{new:true});
-      res.status(200).json({ data:project });
+      const project: Project | null = await projectSchema.findByIdAndUpdate(
+        { _id: req.params.id },
+        req.body,
+        { new: true }
+      );
+      res.status(200).json({ data: project });
     }
   );
 }

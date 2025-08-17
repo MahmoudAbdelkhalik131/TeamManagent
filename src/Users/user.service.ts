@@ -20,7 +20,6 @@ class UserService {
         return next(new Error("Invalid Username or Password"));
       }
       const token = Token.createToken(user);
-      console.log(token);
       res
         .status(200)
         .json({

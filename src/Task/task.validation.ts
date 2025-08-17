@@ -28,7 +28,6 @@ class TaskValidation {
         if (user === null) {
           throw new Error("Please Log In");
         }
-        console.log(user.role);
         if (user.role === "admin") {
           throw new Error("Admin cannot have tasks ده انت عمدة");
         }

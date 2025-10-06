@@ -37,7 +37,15 @@ class ProjectValidation {
     validatorMiddleware,
   ];
   deleteOne = [
-    param("id").isMongoId().withMessage("Invaild Id"),
+    param("id").isMongoId().withMessage("Invaild Id").custom(async(val,{req})=>{
+        const project:Project|null=await projectSchema.findById({_id:val})
+        if(!project){
+           return new Error("Project Not Found")
+        }
+        if(project.username!==req.CurrentUser.username){
+             return new Error ("You aren't authorized to delete this project ")
+        }
+    }),
     validatorMiddleware,
   ];
   create = [

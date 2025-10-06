@@ -3,5 +3,6 @@ interface Project extends Document {
   readonly name: string;
   readonly duration: string;
   readonly color: string;
+  readonly username:string;
 }
 export default Project;

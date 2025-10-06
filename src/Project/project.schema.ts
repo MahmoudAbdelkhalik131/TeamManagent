@@ -5,6 +5,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
     name: { type: String, unique: true },
     duration: { type: String },
     color: { type: String },
+    username: { type: String },
   },
   { timestamps: true }
 );

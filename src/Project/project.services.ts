@@ -5,7 +5,7 @@ import { Request, Response, NextFunction } from "express";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project[] | null = await projectSchema.find();
+      const project: Project[] | null = await projectSchema.find({username:req.CurrentUser.username});
       if (!project) res.json({ message: "OPSss THERE IS NO DATA" });
       res.status(200).json({ data: project });
     }
@@ -28,7 +28,7 @@ class ProjectServices {
         req.params.id
       );
       if (!project) {
-        return next(new Error("AAAAAAAA"));
+        return next(new Error("priject not found"));
       }
       req.projectId = req.params.id;
       console.log(req.projectId);

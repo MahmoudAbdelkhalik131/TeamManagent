@@ -59,7 +59,7 @@ class TaskValidation {
   getAllProjectTask = [
     param("projectId").custom(async (val, { req }) => {
       const task: Task | null = await taskSchema.findOne({
-        project: val.toString(),
+        project: val,
       });
       if (!task) {
         throw new Error("Select the project First");
@@ -120,7 +120,7 @@ class TaskValidation {
     validatorMiddleware,
   ];
   setId = [
-    param("id")
+    param("projectId")
       .notEmpty()
       .isMongoId()
       .withMessage("Invalid Id")

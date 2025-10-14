@@ -5,14 +5,17 @@ import { Request, Response, NextFunction } from "express";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project[] | null = await projectSchema.find({username:req.CurrentUser.username});
+      console.log(req.CurrentUser.username)
+      const project: Project[] | null = await projectSchema.find({username:req.CurrentUser.username.toString()});
       if (!project) res.json({ message: "OPSss THERE IS NO DATA" });
       res.status(200).json({ data: project });
     }
   );
   create = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project = await projectSchema.create(req.body);
+      const project: Project = await projectSchema.create({username:req.CurrentUser.username.toString(),
+        ...req.body
+      });
       res.status(201).json({ data: project });
     }
   );

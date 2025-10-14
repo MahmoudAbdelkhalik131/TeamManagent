@@ -38,9 +38,8 @@ class TaskServices {
   );
   getProjectTask = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const task: Task | null = await taskSchema.findOne({
+      const task: Task []| null = await taskSchema.find({
         project: req.projectId?.toString(),
-        username:req.CurrentUser.username
       });
       if (!task) {
         return next(new Error("No tasks for this project"));

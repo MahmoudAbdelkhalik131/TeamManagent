@@ -42,7 +42,7 @@ class ProjectValidation {
         if(!project){
            return new Error("Project Not Found")
         }
-        if(project.username!==req.CurrentUser.username){
+        if(project.usernameِAdmin!==req.CurrentUser.username||project.usernameMember!==req.CurrentUser.username){
              return new Error ("You aren't authorized to delete this project ")
         }
     }),

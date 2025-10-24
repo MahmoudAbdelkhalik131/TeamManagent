@@ -17,12 +17,6 @@ taskRouter.post(
   taskValidation.create,
   taskServices.create
 );
-taskRouter.post(
-  "/create",
-  auth.allowedRoles(["admin"]),
-  taskValidation.create,
-  taskServices.create
-);
 taskRouter
   .route("/")
   .get(

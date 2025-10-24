@@ -2,7 +2,9 @@ import AsyncHandler from "express-async-handler";
 import userSchema from "../Users/user.schema";
 import Task from "./task.interface";
 import taskSchema from "./task.schema";
+import Features from "../utils/features";
 import { Request, Response, NextFunction } from "express";
+import projectSchema from "../Project/project.schema";
 class TaskServices {
   setId(req: Request, res: Response, next: NextFunction) {
     if (req.params.projectId) {
@@ -15,7 +17,8 @@ class TaskServices {
   getAll = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const tasks: Task[] = await taskSchema.find({ project: req.projectId });
-      res.status(200).json({ data: tasks });
+      const features =new Features(projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameِAdmin:req.CurrentUser.username.toString()}]}),req.query).search();
+      res.status(200).json({ data: tasks ,NumberofTasks:tasks.length});
     }
   );
   getUserTasks = AsyncHandler(
@@ -26,13 +29,8 @@ class TaskServices {
       if (!usernameExits) {
         return next(new Error("User not found"));
       }
-      if (usernameExits.role === "admin") {
-        return next(new Error("Admin cannot have tasks ده انت عمدة"));
-      }
       // we can do that in the validation section
-      const tasks: Task[] = await taskSchema.find({
-        username: req.CurrentUser.username,
-      });
+      const tasks: Task[] = await taskSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameAdmin:req.CurrentUser.username.toString()}]});
       res.status(200).json({ data: tasks });
     }
   );
@@ -52,7 +50,8 @@ class TaskServices {
     async (req: Request, res: Response, next: NextFunction) => {
       const task: Task = await taskSchema.create({
         project: req.projectId,
-        username: req.body.username,
+        usernameMember: req.body.username,
+        usernameAdmin: req.CurrentUser.username,
         name: req.body.name,
         duration: req.body.duration,
         color: req.body.color || "#000000", // default color if not provided

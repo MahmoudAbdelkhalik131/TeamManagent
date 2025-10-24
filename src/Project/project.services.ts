@@ -2,18 +2,21 @@ import Project from "./project.interface";
 import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
+import Features from "../utils/features";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const project: Project[] | null = await projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameِAdmin:req.CurrentUser.username.toString()}]});
-      console.log(project[0].usernameِAdmin)
+             const features =new Features(projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameAdmin:req.CurrentUser.username.toString()}]}),req.query).search();
+
+      console.log(project[0].usernameAdmin)
       if (!project) res.json({ message: "OPSss THERE IS NO DATA" });
       res.status(200).json({ data: project });
     }
   );
   create = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project = await projectSchema.create({usernameِAdmin:req.CurrentUser.username.toString(),
+      const project: Project = await projectSchema.create({usernameAdmin:req.CurrentUser.username.toString(),
         ...req.body
       });
       res.status(201).json({ data: project });

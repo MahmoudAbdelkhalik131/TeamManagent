@@ -8,7 +8,8 @@ const TaskSchema = new mongoose.Schema<Task>(
     color: { type: String },
     description: { type: String },
     project: { type: mongoose.Schema.Types.ObjectId, ref: "project" },
-    username: { type: String, required: true },
+    usernameMember: { type: String, required: true },
+    usernameAdmin: { type: String, required: true },
     status: {
       type: String,
       required: true,

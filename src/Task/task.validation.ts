@@ -33,9 +33,9 @@ class TaskValidation {
         }
         return true;
       }),
-    body("project").custom(async (val, { req }) => {
+    param("projectId").custom(async (val, { req }) => {
       const project: Project | null = await projectSchema.findById(
-        req.projectId
+       {_id: val.toString()}
       );
       if (!project) {
         throw new Error("Select the project First");

@@ -13,13 +13,9 @@ class ProjectValidation {
         if (project) throw new Error("this Project Exits already");
       }),
     body("color")
-      .optional()
-      .isEmpty()
-      .withMessage("this field cann't be Empty"),
+      .optional(),
     body("duration")
-      .optional()
-      .isEmpty()
-      .withMessage("this field cann't be Empty"),
+      .optional(),
     validatorMiddleware,
   ];
   getone = [

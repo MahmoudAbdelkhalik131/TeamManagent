@@ -6,10 +6,8 @@ import Features from "../utils/features";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project[] | null = await projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameِAdmin:req.CurrentUser.username.toString()}]});
-             const features =new Features(projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameAdmin:req.CurrentUser.username.toString()}]}),req.query).search();
-
-      console.log(project[0].usernameAdmin)
+      console.log(req.CurrentUser.username.toString());
+      const project: Project[] | null = await projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameAdmin:req.CurrentUser.username.toString()}]});
       if (!project) res.json({ message: "OPSss THERE IS NO DATA" });
       res.status(200).json({ data: project });
     }

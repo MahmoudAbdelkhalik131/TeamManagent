@@ -3,6 +3,7 @@ import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import Features from "../utils/features";
+import userSchema from "../Users/user.schema";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -49,6 +50,16 @@ class ProjectServices {
       res.status(200).json({ data: project });
     }
   );
+  AddUser = asyncHandler(
+      async (req: Request, res: Response, next: NextFunction) => {
+       const {usernameMember}=req.body
+       const project:Project|null=await projectSchema.findById(req.params.id)
+        project!.usernameMember.push(usernameMember);
+        await project!.save();
+
+        res.status(201).json({ message: "congratulation user added succefully !!!!!!!!!!!" });
+      }
+    );
 }
 const projectServices = new ProjectServices();
 export default projectServices;

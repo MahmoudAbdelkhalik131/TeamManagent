@@ -20,6 +20,11 @@ projectRouter
     projectValidation.updateOne,
     projectServices.updateOne
   )
+  .post(
+    auth.allowedRoles(["admin"]),
+    projectValidation.AddUser,
+    projectServices.AddUser
+  )
   .delete(
     auth.allowedRoles(["admin"]),
     projectValidation.deleteOne,

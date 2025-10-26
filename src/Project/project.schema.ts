@@ -7,7 +7,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
     color: { type: String },
     usernameAdmin: { type: String },
     description:{type:String},
-    usernameMember:{type:String}
+    usernameMember: { type: [String], required: true },
   },
   { timestamps: true }
 );

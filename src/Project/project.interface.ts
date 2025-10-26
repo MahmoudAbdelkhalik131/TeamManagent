@@ -5,6 +5,6 @@ interface Project extends Document {
   readonly color: string;
   readonly usernameAdmin:string;
   readonly description:string;
-  readonly usernameMember:string;
+  readonly usernameMember: string[];
 }
 export default Project;

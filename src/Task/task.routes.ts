@@ -40,6 +40,12 @@ taskRouter
     taskValidation.delete,
     taskServices.delete
   )
+taskRouter
+  .route("/:id")
+  .patch(
+    auth.allowedRoles(["member"]),
+    taskServices.updateStatus
+  )
   .put(
     auth.allowedRoles(["admin"]),
     taskValidation.update,

@@ -80,7 +80,26 @@ class TaskServices {
       );
       res.status(200).json({ data: updatedTask });
     }
+
   );
+  updateStatus = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const task: Task | null = await taskSchema.findById(req.params.id);
+      if (!task) {
+        return next(new Error("No Task "));
+      }
+      const {status}=req.body
+      if(status!=="pending" && status!=="in-progress" && status!=="done"){
+        return next(new Error("Invalid status value"));
+      }
+      const updatedTask: Task | null = await taskSchema.findByIdAndUpdate(
+        req.params.id,
+        { status: req.body.status },
+        { new: true }
+      );
+      res.status(200).json({ data: updatedTask });
+    });
+    
 }
 const taskServices = new TaskServices();
 export default taskServices;

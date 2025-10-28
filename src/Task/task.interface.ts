@@ -8,6 +8,6 @@ interface Task extends Document {
   readonly description: string;
   readonly usernameMember: string;
   readonly usernameAdmin: string;
-  readonly status: string;
+  readonly status: "pending"|"in-progress"|"done";
 }
 export default Task;

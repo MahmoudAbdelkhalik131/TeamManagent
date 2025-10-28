@@ -29,7 +29,7 @@ taskRouter
 taskRouter
   .route("/utask")
   .get(
-    auth.verifyToken,
+    auth.allowedRoles(["member"]),
     taskValidation.getAlluserTask,
     taskServices.getUserTasks
   );

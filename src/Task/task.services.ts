@@ -17,7 +17,6 @@ class TaskServices {
   getAll = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const tasks: Task[] = await taskSchema.find({ project: req.projectId });
-      const features =new Features(projectSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameِAdmin:req.CurrentUser.username.toString()}]}),req.query).search();
       res.status(200).json({ data: tasks ,NumberofTasks:tasks.length});
     }
   );
@@ -40,7 +39,7 @@ class TaskServices {
         project: req.projectId?.toString(),
       });
       if (!task) {
-        return next(new Error("No tasks for this project"));
+        return next(new Error("Please add tasks to this project"));
       }
       // we can do that in the validation section
       res.status(200).json({ data: task });

@@ -5,7 +5,7 @@ import Routes from "./src";
 import RateLimiter from "./src/middlewares/ratelimiter";
 import cors from "cors"
 const app: express.Application = express();
-app.use(express.json());
+app.use(express.json({limit:'1mb'}));
 dotenv.config();
 Connection();
 app.use(cors());

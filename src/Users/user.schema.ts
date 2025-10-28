@@ -3,7 +3,7 @@ import Users from "./user.interface";
 const UserSchema = new mongoose.Schema<Users>(
   {
     username: { type: String, unique: true },
-    password: { type: String },
+    password: { type: String,select:false },
     role: { type: String, enum: ["admin", "member"], default: "member" },
   },
   { timestamps: true }

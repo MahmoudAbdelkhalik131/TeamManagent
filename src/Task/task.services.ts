@@ -2,9 +2,7 @@ import AsyncHandler from "express-async-handler";
 import userSchema from "../Users/user.schema";
 import Task from "./task.interface";
 import taskSchema from "./task.schema";
-import Features from "../utils/features";
 import { Request, Response, NextFunction } from "express";
-import projectSchema from "../Project/project.schema";
 class TaskServices {
   setId(req: Request, res: Response, next: NextFunction) {
     if (req.params.projectId) {

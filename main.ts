@@ -5,6 +5,7 @@ import Routes from "./src";
 import RateLimiter from "./src/middlewares/ratelimiter";
 import cors from "cors"
 import helmet  from "helmet";
+import io from "socket.io"
 const app: express.Application = express();
 app.use(express.json({limit:'1mb'}));
 dotenv.config();

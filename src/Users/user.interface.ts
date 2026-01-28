@@ -4,6 +4,10 @@ interface Users extends Document {
   password: string;
   team: Users[];
   readonly role: "admin" | "member";
+  validUser:boolean;
+  verifyCode:string;
+  forgetPasswordCode:string;
+  email:string;
 }
 
 export default Users;

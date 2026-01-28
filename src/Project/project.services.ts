@@ -2,7 +2,6 @@ import Project from "./project.interface";
 import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
-import Features from "../utils/features";
 import userSchema from "../Users/user.schema";
 class ProjectServices {
   getAll = asyncHandler(

@@ -1,5 +1,22 @@
+// need smome changes here
 import { Request, Response, NextFunction } from "express";
 import MESSAGES from "../utils/messages";
+class ErrorHandler {
+  public status: number;
+  public message: string;
+  constructor(status: number, message: string) {
+    this.status = status;
+    this.message = message;
+    (err: any, req: Request, res: Response, next: NextFunction) => {
+      res.status(this.status).json({
+        success: false,
+        error: this.message,
+        stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+      });
+    };
+  }
+}
+export {ErrorHandler}
 
 export default function errorHandler(
   err: any,

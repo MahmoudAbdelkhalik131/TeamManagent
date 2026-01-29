@@ -28,7 +28,6 @@ userRouter.post('/verify',userSevices.verifyCode)
 userRouter.post('/password-reset-code',userSevices.ResetPasswordCode)
 userRouter.post('/verify-reset-code',userSevices.verifyCodeForgetPasswordCode)
 userRouter.post('/reset-password',userSevices.resetPassword)
-
 export default userRouter
 
 

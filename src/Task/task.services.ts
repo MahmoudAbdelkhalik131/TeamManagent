@@ -86,7 +86,7 @@ class TaskServices {
         return next(new Error("No Task "));
       }
       const {status}=req.body
-      if(status!=="pending" && status!=="in-progress" && status!=="done"){
+      if(status!=="Pending" && status!=="In-progress" && status!=="Done"){
         return next(new Error("Invalid status value"));
       }
       const updatedTask: Task | null = await taskSchema.findByIdAndUpdate(

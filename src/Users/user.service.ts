@@ -21,13 +21,6 @@ class UserServices {
     if (!user) {
       return next(new ErrorHandler(400, "Invalid email or password"));
     }
-    const password = await bcrypt.compare(req.body.password, user.password);
-    if (password === false) {
-      return next(new ErrorHandler(400, "Invalid email or password"));
-    }
-    if(user.validUser==false){
-      return next(new ErrorHandler(401,"Please Verify your email before login ....."))
-    }
     const token = Token.createToken(user);
     res.status(200).json({ data: user, token: token });
   };

@@ -6,6 +6,7 @@ import projectSchema from "../Project/project.schema";
 import validatorMiddleware from "../middlewares/validation.middleware";
 import Task from "./task.interface";
 import taskSchema from "./task.schema";
+import { parseDate, isValidDate, isFutureDate } from "../utils/dateHandler";
 class TaskValidation {
   create = [
     body("color")
@@ -14,7 +15,20 @@ class TaskValidation {
       .withMessage("fill it or it will take the default"),
     body("duration")
       .notEmpty()
-      .withMessage("You need to determin the duration for task"),
+      .withMessage("You need to determine the duration for task")
+      .custom((val) => {
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error(
+            "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
+          );
+        }
+        // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
+        // if (!isFutureDate(date)) {
+        //   throw new Error("Task duration must be in the future");
+        // }
+        return true;
+      }),
     body("description")
       .notEmpty()
       .withMessage("Please set the description for the task"),
@@ -34,9 +48,9 @@ class TaskValidation {
         return true;
       }),
     param("projectId").custom(async (val, { req }) => {
-      const project: Project | null = await projectSchema.findById(
-       {_id: val.toString()}
-      );
+      const project: Project | null = await projectSchema.findById({
+        _id: val.toString(),
+      });
       if (!project) {
         throw new Error("Select the project First");
       }
@@ -87,8 +101,16 @@ class TaskValidation {
       .withMessage("fill it or it will take the default"),
     body("duration")
       .optional()
-      .notEmpty()
-      .withMessage("You need to determin the duration for task"),
+      .custom((val) => {
+        if (!val) return true;
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error(
+            "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
+          );
+        }
+        return true;
+      }),
     body("description")
       .optional()
       .notEmpty()
@@ -98,7 +120,7 @@ class TaskValidation {
       .notEmpty()
       .custom(async (val) => {
         const project: Project | null = await projectSchema.findById(
-          val.toString()
+          val.toString(),
         );
         if (!project) {
           throw new Error("Select the project First");
@@ -126,7 +148,7 @@ class TaskValidation {
       .withMessage("Invalid Id")
       .custom(async (val, { req }) => {
         const project: Project | null = await projectSchema.findById(
-          val.toString()
+          val.toString(),
         );
         if (!project) {
           throw new Error("Please Enter valid Project Id");

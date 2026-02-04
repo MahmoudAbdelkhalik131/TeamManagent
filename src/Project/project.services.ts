@@ -3,6 +3,7 @@ import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import userSchema from "../Users/user.schema";
+import taskSchema from "../Task/task.schema";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -34,9 +35,11 @@ class ProjectServices {
       if (!project) {
         return next(new Error("priject not found"));
       }
+      const taskProject=await taskSchema.find({project:project._id!.toString()})
+      console.log(taskProject)
       req.projectId = req.params.id;
       console.log(req.projectId);
-      res.status(200).json({ data: project });
+      res.status(200).json({ data: project, tasks: taskProject });
     }
   );
   updateOne = asyncHandler(

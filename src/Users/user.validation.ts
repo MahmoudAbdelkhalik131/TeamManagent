@@ -48,10 +48,12 @@ class UserValidation {
       .withMessage("email is required")
       .custom(async (val, { req }) => {
         const user: Users | null = await userSchema.findOne({ email: val });
-        if (!user) {
+        console.log(user)
+        if (!user || user.validUser==false) {
+          await userSchema.deleteOne({email:val})
           throw new Error("User not found please register first.....");
         }
-        const isPasswordCorrect = bcrypt.compareSync(
+        const isPasswordCorrect =  await bcrypt.compare(
           req.body.password,
           user.password
         );

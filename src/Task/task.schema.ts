@@ -4,7 +4,17 @@ import express from "express";
 const TaskSchema = new mongoose.Schema<Task>(
   {
     name: { type: String },
-    duration: { type: String },
+    duration: { 
+      type: Date,
+      set: (val: string | Date) => {
+        // تحويل string إلى Date تلقائياً عند الحفظ
+        if (typeof val === 'string') {
+          const date = new Date(val);
+          return isNaN(date.getTime()) ? null : date;
+        }
+        return val;
+      }
+    },
     color: { type: String },
     description: { type: String },
     project: { type: mongoose.Schema.Types.ObjectId, ref: "project" },
@@ -13,8 +23,8 @@ const TaskSchema = new mongoose.Schema<Task>(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "in-progress", "done"],
-      default: "pending",
+      enum: ["Pending", "In-progress", "Done"],
+      default: "Pending",
     },
   },
   { timestamps: true }

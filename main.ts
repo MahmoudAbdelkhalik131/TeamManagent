@@ -5,18 +5,26 @@ import Routes from "./src";
 import cors from "cors"
 import http from "http"
 import helmet  from "helmet";
-import { initSocket } from "./src/middlewares/chat";
 import path from "path";
 import i18n from "i18n";
+import {Server} from "socket.io"
+import dateFormatterMiddleware from "./src/middlewares/dateFormatter";
 const app: express.Application = express();
 app.use(express.json({limit:'1mb'}));
 dotenv.config();
 Connection();
 app.use(helmet())
 app.use(cors());
+// إضافة middleware لتنسيق التواريخ في responses
+app.use(dateFormatterMiddleware);
 const server = http.createServer(app);
-initSocket(server);
-app.listen(process.env.PORT, () => {
+const io = new Server(server, {
+  cors: {
+    origin: "*", 
+    methods: ["GET", "POST"]
+  }
+});
+server.listen(process.env.PORT, () => {
   console.log(`server started on port ${process.env.PORT} with cors enabled`);
 });
 i18n.configure({
@@ -27,3 +35,4 @@ i18n.configure({
 });
 app.use(i18n.init);
 Routes(app);
+export{io}

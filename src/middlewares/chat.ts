@@ -1,121 +1,135 @@
-import io from "socket.io"
-import { Server as IOServer, Socket } from "socket.io";
-import http from "http";
-import Tokens from "../middlewares/Tokens"; // adjust if exported name differs
-import projectSchema from "../Project/project.schema";
-import messageSchema from "../message/message.schema"; // created below
 
-interface BroadcastPayload {
+import {Socket } from 'socket.io';
+import { io } from '../../main';
+import Token from './Tokens';
+import dotenv from 'dotenv';
+import { ErrorHandler } from './errorHandler';
+dotenv.config();
+// --- تعريف الواجهات (Interfaces) ---
+
+interface UserPayload {
+  id: string;
+  name: string;
+  role: 'admin' | 'member';
+}
+
+// توسيع واجهة Socket لتشمل بيانات المستخدم
+interface CustomSocket extends Socket {
+  user?: UserPayload;
+}
+
+// واجهات البيانات المرسلة عبر الأحداث
+interface GroupMessageData {
   projectId: string;
   content: string;
-  meta?: Record<string, any>;
 }
-export function initSocket(server: http.Server) {
-  const io = new IOServer(server, {
-    cors: { origin:  "http://localhost:5173/",
-    methods: ["GET", "POST"] },
-  });
 
-  // optional simple per-socket rate limiting store
-  const lastSentAt = new Map<string, number>();
+interface PrivateMessageData {
+  receiverId: string;
+  content: string;
+}
 
-  io.use(async (socket: Socket, next) => {
-    try {
-      // prefer token in handshake.auth.token (recommended for socket.io client) or Authorization header
-      const token = (socket.handshake.auth && socket.handshake.auth.token) || socket.handshake.headers["authorization"]?.split(" ")[1];
-      if (!token) return next(new Error("Authentication error"));
+interface AnnouncementData {
+  projectId: string;
+  title: string;
+  content: string;
+}
 
-      const decoded: any = Tokens.verifyToken(token); // adjust to your verify function
-      if (!decoded) return next(new Error("Invalid token"));
-      socket.data.currentUser = decoded.payload ?? decoded; // accommodate payload nesting
-      return next();
-    } catch (err) {
-      return next(new Error("Authentication error"));
+// ==========================================================
+// 1. MIDDLEWARE: التحقق من الهوية
+// ==========================================================
+io.use((socket: CustomSocket, next) => {
+  try {
+    const token = socket.handshake.auth.token as string | undefined;
+
+    if (!token) {
+      return next(new Error("Authentication error: No token provided"));
     }
+
+    // تأكد من وجود JWT_SECRET في ملف .env
+    const decoded = Token.verifyToken(token) as UserPayload;
+    if (!decoded) {
+      return next(new Error("Authentication error: Invalid Token"));
+    }
+
+    // تخزين البيانات في الـ socket object
+    socket.user = {
+      id: decoded.id,
+      name: decoded.name,
+      role: decoded.role
+    };
+
+    next();
+  } catch (err) {
+    next(new Error("Authentication error: Invalid Token"));
+  }
+});
+
+// ==========================================================
+// 2. CONNECTION: إدارة الأحداث
+// ==========================================================
+io.on("connection", (socket: CustomSocket) => {
+  // بما أننا استخدمنا Middleware، فنحن نضمن وجود socket.user
+  const user = socket.user!; 
+  const userId = user.id;
+
+  // A. الانضمام للغرفة الشخصية
+  socket.join(userId);
+  console.log(`🚀 User connected: ${user.name} [ID: ${userId}]`);
+
+  // B. الانضمام لغرفة مشروع
+  socket.on("join_project", (projectId: string) => {
+    socket.join(projectId);
+    console.log(`📁 ${user.name} joined Project: ${projectId}`);
   });
 
-  io.on("connection", (socket: Socket) => {
-    // join project room
-    socket.on("joinProject", (projectId: string) => {
-      if (!projectId) return;
-      socket.join(`project:${projectId}`);
+  // C. إرسال رسالة للمشروع (Group Chat)
+  socket.on("send_group_message", async (data: GroupMessageData) => {
+    const { projectId, content } = data;
+
+    // TODO: (Database Logic) 
+    // const savedMsg = await GroupMessage.create({ sender: userId, project: projectId, content });
+
+    io.to(projectId).emit("receive_group_message", {
+      sender: { id: userId, name: user.name },
+      content: content,
+      timestamp: new Date().toISOString()
     });
-
-    socket.on("leaveProject", (projectId: string) => {
-      if (!projectId) return;
-      socket.leave(`project:${projectId}`);
-    });
-       socket.on("sendMessage", (data:string) => {
-       socket.emit("receiveMessage",data)
-    });
-    
-
-    // Admin broadcast -> server verifies admin and then emits to room
-    socket.on("broadcastMessage", async (payload: BroadcastPayload, ack?: (res: any) => void) => {
-      try {
-        // basic payload validation
-        if (!payload?.projectId || !payload?.content) {
-          if (ack) return ack({ success: false, error: "Invalid payload" });
-          return;
-        }
-
-        // simple rate-limit per socket (example: 1 message / 2s)
-        const sid = socket.id;
-        const now = Date.now();
-        const last = lastSentAt.get(sid) || 0;
-        if (now - last < 2000) {
-          if (ack) return ack({ success: false, error: "You're sending messages too fast" });
-        }
-        lastSentAt.set(sid, now);
-
-        const currentUser = socket.data.currentUser;
-        if (!currentUser) {
-          if (ack) return ack({ success: false, error: "Unauthorized" });
-          return;
-        }
-
-        // verify that currentUser is admin of this project
-        const project = await projectSchema.findById(payload.projectId).lean();
-        if (!project) {
-          if (ack) return ack({ success: false, error: "Project not found" });
-          return;
-        }
-
-        // compare using your schema field (handle possible naming issues)
-        const adminName = project.usernameAdmin ?? project["usernameAdmin"];
-        if (!adminName || adminName.toString() !== currentUser.username?.toString()) {
-          if (ack) return ack({ success: false, error: "Forbidden: only project admin can broadcast" });
-          return;
-        }
-
-        // create message document (optional persistence)
-        const message = await messageSchema.create({
-          project: payload.projectId,
-          sender: currentUser.username,
-          content: payload.content,
-          meta: payload.meta || {},
-        });
-
-        // emit to all sockets in project room
-        io.to(`project:${payload.projectId}`).emit("newMessage", {
-          id: message._id,
-          projectId: payload.projectId,
-          sender: currentUser.username,
-          content: payload.content,
-          meta: payload.meta || {},
-        });
-
-        if (ack) ack({ success: true });
-      } catch (err) {
-        if (ack) ack({ success: false, error: (err as Error).message || "Server error" });
-      }
-    });
-
-    socket.on("disconnect", () => {
-      lastSentAt.delete(socket.id);
-    });
- 
   });
 
-  return io;
-}
+  // D. إرسال إعلان هام (Admin Only)
+  socket.on("send_announcement", (data: AnnouncementData) => {
+    const { projectId, title, content } = data;
+
+    if (user.role !== 'admin') {
+      return socket.emit("error_message", "غير مصرح لك بإرسال إعلانات!");
+    }
+
+    io.to(projectId).emit("receive_announcement", {
+      sender: "System Admin",
+      title: title,
+      content: content,
+      isImportant: true,
+      timestamp: new Date().toISOString()
+    });
+  });
+
+  // E. إرسال رسالة خاصة (One-to-One)
+  socket.on("send_private_message", (data: PrivateMessageData) => {
+    const { receiverId, content } = data;
+
+    // إرسال للمستقبل (عن طريق غرفته الخاصة)
+    io.to(receiverId).emit("receive_private_message", {
+      sender: { id: userId, name: user.name },
+      content: content,
+      timestamp: new Date().toISOString()
+    });
+
+    // تأكيد الإرسال للمرسل
+    socket.emit("message_sent_ack", { to: receiverId, status: "sent" });
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log(`👋 User disconnected: ${user.name} | Reason: ${reason}`);
+  });
+});

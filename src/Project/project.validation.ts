@@ -3,6 +3,7 @@ import projectSchema from "./project.schema";
 import validatorMiddleware from "../middlewares/validation.middleware";
 import Project from "./project.interface";
 import userSchema from "../Users/user.schema";
+import { parseDate } from "../utils/dateHandler";
 
 class ProjectValidation {
   updateOne = [
@@ -16,7 +17,15 @@ class ProjectValidation {
     body("color")
       .optional(),
     body("duration")
-      .optional(),
+      .optional()
+      .custom((val) => {
+        if (!val) return true;
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error("Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z");
+        }
+        return true;
+      }),
     validatorMiddleware,
   ];
   getone = [
@@ -39,7 +48,7 @@ class ProjectValidation {
         if(!project){
            throw new Error("Project Not Found")
         }
-        if(project.usernameAdmin!==req.CurrentUser.username||project.usernameMember!==req.CurrentUser.username){
+        if(project.usernameAdmin.toString()!==req.CurrentUser.username.toString()){
              throw new Error ("You aren't authorized to delete this project ")
         }
     }),
@@ -54,8 +63,26 @@ class ProjectValidation {
         if (project) throw new Error("this Project Exits already");
         return true;
       }),
+      body("usernameMember")
+      .notEmpty()
+      .withMessage("this field is required")
+      .custom(async (val) => {
+        const project = await projectSchema.findOne({ name: val });
+        if (project) throw new Error("this Project Exits already");
+        return true;
+      }),
     body("color").notEmpty().withMessage("this field cann't be Empty"),
-    body("duration").notEmpty().withMessage("this field cann't be Empty"),
+    body("duration")
+      .notEmpty()
+      .withMessage("this field cann't be Empty")
+      .custom((val) => {
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error("Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z");
+        }
+        return true;
+      }),
+     body("description").notEmpty().withMessage("this field cann't be Empty"),
     validatorMiddleware,
   ];
   AddUser = [

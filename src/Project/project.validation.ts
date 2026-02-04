@@ -67,8 +67,23 @@ class ProjectValidation {
       .notEmpty()
       .withMessage("this field is required")
       .custom(async (val) => {
-        const project = await projectSchema.findOne({ name: val });
-        if (project) throw new Error("this Project Exits already");
+        if(Array.isArray(val)){
+           val.forEach(async(username:string)=>{
+          const userExits= await userSchema.findOne({username:username})
+          if(!userExits){
+           throw new Error(`User ${username} not found`);
+          }
+          if(userExits.role ==="admin"){
+            throw new Error(`Admin User ${username} cannot be added to the project as a member`);
+          }
+        })
+        }
+        else{
+          const userExits= await userSchema.findOne({username:val.toString()})
+          if(!userExits){
+           throw new Error(`User ${val} not found`);
+          }
+        }
         return true;
       }),
     body("color").notEmpty().withMessage("this field cann't be Empty"),

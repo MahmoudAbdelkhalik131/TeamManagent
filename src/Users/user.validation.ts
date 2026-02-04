@@ -65,6 +65,19 @@ class UserValidation {
     body("password").notEmpty().withMessage("Password is required"),
     validatorMiddleware,
   ];
+   ChangePassword = [
+    body("password")
+      .notEmpty()
+      .withMessage("password is required")
+      .custom(async (val, { req }) => {
+        const confirmPassword: string=req.body.confirmPassword;;
+        if (confirmPassword !== val) {
+          throw new Error("Password does not match");
+        }
+        return true;
+      }),
+    validatorMiddleware,
+  ];
 }
 const userValidation = new UserValidation();
 export default userValidation;

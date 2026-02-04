@@ -11,13 +11,11 @@ UserRouter.post('/register',userValidation.register,userService.register)
 UserRouter.post('/verify',userService.verifyCode)
 UserRouter.post('/password-reset-code',userService.ResetPasswordCode)
 UserRouter.post('/verify-reset-code',userService.verifyCodeForgetPasswordCode)
-UserRouter.post('/reset-password',userService.resetPassword)
+UserRouter.post('/reset-password',userValidation.ChangePassword,userService.resetPassword)
 
 export default UserRouter;
 
 /*
-
-
 import Uservalidation from './user.validation'
 import auth from '../auth/authen'
 const userRouter = express.Router()

@@ -8,15 +8,12 @@ import helmet  from "helmet";
 import path from "path";
 import i18n from "i18n";
 import {Server} from "socket.io"
-import dateFormatterMiddleware from "./src/middlewares/dateFormatter";
 const app: express.Application = express();
 app.use(express.json({limit:'1mb'}));
 dotenv.config();
 Connection();
 app.use(helmet())
 app.use(cors());
-// إضافة middleware لتنسيق التواريخ في responses
-app.use(dateFormatterMiddleware);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {

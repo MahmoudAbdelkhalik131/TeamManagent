@@ -9,5 +9,4 @@ interface Users extends Document {
   forgetPasswordCode:string;
   email:string;
 }
-
 export default Users;

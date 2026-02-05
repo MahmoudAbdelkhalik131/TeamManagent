@@ -2,7 +2,6 @@ import Project from "./project.interface";
 import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
-import userSchema from "../Users/user.schema";
 import taskSchema from "../Task/task.schema";
 class ProjectServices {
   getAll = asyncHandler(
@@ -33,7 +32,7 @@ class ProjectServices {
         req.params.id
       );
       if (!project) {
-        return next(new Error("priject not found"));
+        return next(new Error("project not found"));
       }
       const taskProject=await taskSchema.find({project:project._id!.toString()})
       console.log(taskProject)

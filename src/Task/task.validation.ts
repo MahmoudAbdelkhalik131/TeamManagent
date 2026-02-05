@@ -23,10 +23,10 @@ class TaskValidation {
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
         }
-        // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
-        // if (!isFutureDate(date)) {
-        //   throw new Error("Task duration must be in the future");
-        // }
+       // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
+        if (!isFutureDate(date)) {
+          throw new Error("Task duration must be in the future");
+        }
         return true;
       }),
     body("description")
@@ -40,7 +40,7 @@ class TaskValidation {
           username: val.toString(),
         });
         if (user === null) {
-          throw new Error("Please Log In");
+          throw new Error("Member username not found");
         }
         if (user.role === "admin") {
           throw new Error("Admin cannot have tasks ده انت عمدة");

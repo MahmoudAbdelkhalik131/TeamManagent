@@ -3,7 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start:dev": "nodemon main.ts"
+    "start:dev": "nodemon main.ts",
+    "build" : "tsc",
+    "start": "node ./dist/main.js"
+
   },
   "keywords": [],
   "author": "",

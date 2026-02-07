@@ -18,6 +18,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
     usernameAdmin: { type: String },
     description:{type:String},
     usernameMember: { type: [String], required: true },
+    percent:{type:Number,default:0},
     status:{type:String,enum:["Active","Inactive","Done"],default:"Active"}
   },
   { timestamps: true }

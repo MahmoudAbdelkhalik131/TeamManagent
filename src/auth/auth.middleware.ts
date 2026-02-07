@@ -21,6 +21,25 @@ class Auth {
 
     next();
   }
+  verifyCodeToken(req: Request, res: Response, next: NextFunction) {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "Unauthorized1" });
+    }
+    try {
+      const decoded: any = Token.verifyTokenCode(token);
+      if (!decoded) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      req.CurrentUser = decoded.user;
+
+      // Attach the decoded token to the request object
+    } catch (err: any) {
+      throw new Error(err);
+    }
+
+    next();
+  }
   allowedRoles(roles: string[]) {
     return (req: Request, res: Response, next: NextFunction) => {
       const token = req.headers.authorization?.split(" ")[1];

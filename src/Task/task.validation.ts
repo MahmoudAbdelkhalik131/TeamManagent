@@ -71,12 +71,13 @@ class TaskValidation {
     validatorMiddleware,
   ];
   getAllProjectTask = [
-    param("projectId").custom(async (val, { req }) => {
+    param("projectId").isMongoId().withMessage("Invalid Project Id")
+    .custom(async (val, { req }) => {
       const task: Task | null = await taskSchema.findOne({
         project: val,
       });
       if (!task) {
-        throw new Error("Select the project First");
+        throw new Error("OOOops! please add tasks to this project first");
       }
       return true;
     }),
@@ -143,9 +144,10 @@ class TaskValidation {
   ];
   setId = [
     param("projectId")
-      .notEmpty()
       .isMongoId()
       .withMessage("Invalid Id")
+      .notEmpty()
+      .withMessage("please inter the project Id")
       .custom(async (val, { req }) => {
         const project: Project | null = await projectSchema.findById(
           val.toString(),

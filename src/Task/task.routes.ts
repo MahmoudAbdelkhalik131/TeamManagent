@@ -7,6 +7,7 @@ import taskValidation from "./task.validation";
 taskRouter.get(
   "/all",
   auth.verifyToken,
+  taskValidation.setId,
   taskServices.setId,
   taskServices.getAll
 );
@@ -29,7 +30,7 @@ taskRouter
 taskRouter
   .route("/utask")
   .get(
-    auth.allowedRoles(["member"]),
+    auth.allowedRoles(["member","admin"]),
     taskValidation.getAlluserTask,
     taskServices.getUserTasks
   );

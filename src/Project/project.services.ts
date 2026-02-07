@@ -3,6 +3,7 @@ import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import taskSchema from "../Task/task.schema";
+import Task from "../Task/task.interface";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -35,10 +36,16 @@ class ProjectServices {
         return next(new Error("project not found"));
       }
       const taskProject=await taskSchema.find({project:project._id!.toString()})
-      console.log(taskProject)
       req.projectId = req.params.id;
-      console.log(req.projectId);
-      res.status(200).json({ data: project, tasks: taskProject });
+      if (!taskProject) {
+        return next(new Error("Please add tasks to this project"));
+      }
+      const member:number= project?.usernameMember.length!;
+      const pending :number= taskProject.filter((t) => t.status === "Pending").length;
+      const Inprogress:number=taskProject.filter((t)=>t.status==="In-progress").length
+      const Done:number=taskProject.filter((t)=>t.status==="Done").length
+      const percent:number=taskProject.length>0?Math.round((Done/taskProject.length)*100):0
+      res.status(200).json({ data: project, tasks: taskProject ,member:member,pending:pending,Inprogress:Inprogress,Done:Done,percent:percent});
     }
   );
   updateOne = asyncHandler(

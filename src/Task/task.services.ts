@@ -72,8 +72,12 @@ class TaskServices {
         if(percent>=100){
           project.status="Done"
         }
+        else{
+          project.status="Active"
+        }
         await project.save()
       }
+    
 
       res.status(201).json({ data: task,percent:percent });
     }
@@ -92,6 +96,9 @@ class TaskServices {
         project.percent=percent
         if(percent>=100){
           project.status="Done"
+        }
+        else{
+          project.status="Active"
         }
         await project.save()
       }
@@ -133,6 +140,9 @@ class TaskServices {
         project.percent=percent
         if(percent>=100){
           project.status="Done"
+        }
+        else{
+          project.status="Active"
         }
         await project.save()
       }

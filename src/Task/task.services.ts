@@ -112,6 +112,10 @@ class TaskServices {
       if (!task) {
         return next(new Error("No Task "));
       }
+      const {status}=req.body
+      if (status && req.CurrentUser.role === "admin"){
+        return next(new Error("Admin cannot update task status ده انت عمدة"));
+      }
       const updatedTask: Task | null = await taskSchema.findByIdAndUpdate(
         req.params.id,
         req.body,

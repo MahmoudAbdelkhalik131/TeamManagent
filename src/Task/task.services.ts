@@ -30,7 +30,7 @@ class TaskServices {
       }
       // we can do that in the validation section
       const tasks: Task[] = await taskSchema.find({$or:[{usernameMember:req.CurrentUser.username.toString()},{usernameAdmin:req.CurrentUser.username.toString()}]});
-      res.status(200).json({ data: tasks });
+      res.status(200).json({ data: tasks ,NumberofTasks:tasks.length});
     }
   );
   getProjectTask = AsyncHandler(

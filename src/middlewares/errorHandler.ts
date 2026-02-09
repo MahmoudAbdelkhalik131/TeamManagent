@@ -44,6 +44,7 @@ export default function errorHandler(
   if (process.env.NODE_ENV !== "production") {
     payload.stack = err.stack;
   }
+  
 
   return res.status(status).json(payload);
 }

@@ -15,8 +15,8 @@ class Auth {
       req.CurrentUser = decoded.user;
 
       // Attach the decoded token to the request object
-    } catch (err: any) {
-      throw new Error(err);
+    } catch (err: Error|any) {
+      throw new Error(err.message);
     }
 
     next();

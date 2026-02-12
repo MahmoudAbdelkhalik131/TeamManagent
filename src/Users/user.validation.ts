@@ -15,7 +15,7 @@ class UserValidation {
         }
         return true;
       }),
-      body("email")
+    body("email")
       .isEmail()
       .withMessage("email is required")
       .custom(async (val, { req }) => {
@@ -48,14 +48,14 @@ class UserValidation {
       .withMessage("email is required")
       .custom(async (val, { req }) => {
         const user: Users | null = await userSchema.findOne({ email: val });
-        console.log(user)
-        if (!user || user.validUser==false) {
-          await userSchema.deleteOne({email:val})
+        console.log(user);
+        if (!user || user.validUser == false) {
+          await userSchema.deleteOne({ email: val });
           throw new Error("User not found please register first.....");
         }
-        const isPasswordCorrect =  await bcrypt.compare(
+        const isPasswordCorrect = await bcrypt.compare(
           req.body.password,
-          user.password
+          user.password,
         );
         if (!isPasswordCorrect) {
           throw new Error("Invalid Username or Password");
@@ -65,12 +65,12 @@ class UserValidation {
     body("password").notEmpty().withMessage("Password is required"),
     validatorMiddleware,
   ];
-   ChangePassword = [
+  ChangePassword = [
     body("password")
       .notEmpty()
       .withMessage("password is required")
       .custom(async (val, { req }) => {
-        const confirmPassword: string=req.body.confirmPassword;;
+        const confirmPassword: string = req.body.confirmPassword;
         if (confirmPassword !== val) {
           throw new Error("Password does not match");
         }

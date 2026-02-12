@@ -10,6 +10,7 @@ import sendEmail from "../utils/sendEmail";
 import { console } from "inspector";
 import UserRouter from "./user.route";
 
+
 class UserServices {
   gettAllUser = async (req: Request, res: Response, next: NextFunction) => {
     const users: Users[] | null = await userSchema.find();
@@ -27,22 +28,22 @@ class UserServices {
     res.status(200).json({ data: user, token: token });
   };
   register = async (req: Request, res: Response, next: NextFunction) => {
-    const verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
-    const user = await userSchema.create({
+    const verifyCode =  Math.floor(100000 + Math.random() * 900000).toString();
+     const user = {
       username: req.body.username,
       email: req.body.email,
       password: await bcrypt.hash(req.body.password, 10),
       role: req.body.role,
-    });
+      verifyCode: verifyCode,
+    };
     await sendEmail({
       verifyCode: verifyCode,
       subject: "You verification code is ",
       email: user.email.toString(),
-    });
-    user.verifyCode = verifyCode;
-    user.save({ validateModifiedOnly: true });
+    }); 
     const token = Token.createToken(user);
     res.status(200).json({
+      user:user,
       token: token,
       message: "verification code sent successfully Please check your email",
     });
@@ -55,17 +56,28 @@ class UserServices {
           return next(new ErrorHandler(401, `${req.__("check_active")}`));
         }
         const decode: any = Token.verifyToken(token);
-        console.log(decode);
-        const user = await userSchema.findById(decode.user._id.toString());
-        if (!user) {
+        console.log("1");
+        if(!decode) {
+          return next(new ErrorHandler(401, `${req.__("check_active")}`));
+        }
+        if (!decode.user) {
           return next(new ErrorHandler(400, `${req.__("allowed_to")}`));
         }
-        if (req.body.verifyCode !== user.verifyCode) {
+        console.log("1");
+        if (req.body.verifyCode !== decode.user.verifyCode) {
           return next(new ErrorHandler(400, `${req.__("check_code_valid")}`));
         }
-        user.validUser = true;
-        user.verifyCode = await bcrypt.hash(user.verifyCode, 10);
-        user.save();
+         const userCreated =await userSchema.create({
+          username:decode.user.username.toString(),
+          email:decode.user.email.toString(),
+          password:decode.user.password.toString(),
+          role:decode.user.role.toString(),
+          verifyCode:decode.user.verifyCode.toString(),
+          validUser:false
+         })
+         userCreated.validUser = true;
+         userCreated.verifyCode = await bcrypt.hash(userCreated.verifyCode, 10);
+         await userCreated.save();
         res.status(200).json({ message: "You have registared successfully" });
       } else {
         return next(new ErrorHandler(404, `${req.__("check_login")}`));

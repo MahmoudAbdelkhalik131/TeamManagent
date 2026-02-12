@@ -9,7 +9,7 @@ projectRouter.post(
   "/create",
   auth.allowedRoles(["admin"]),
   projectValidation.create,
-  projectServices.create
+  projectServices.create,
 );
 projectRouter.route("/").get(auth.verifyToken, projectServices.getAll);
 projectRouter
@@ -18,17 +18,17 @@ projectRouter
   .put(
     auth.allowedRoles(["admin"]),
     projectValidation.updateOne,
-    projectServices.updateOne
+    projectServices.updateOne,
   )
   .post(
     auth.allowedRoles(["admin"]),
     projectValidation.AddUser,
-    projectServices.AddUser
+    projectServices.AddUser,
   )
   .delete(
     auth.allowedRoles(["admin"]),
     projectValidation.deleteOne,
-    projectServices.deleteOne
+    projectServices.deleteOne,
   );
 
 export default projectRouter;

@@ -1,16 +1,15 @@
-
-import {Socket } from 'socket.io';
-import { io } from '../../main';
-import Token from './Tokens';
-import dotenv from 'dotenv';
-import { ErrorHandler } from './errorHandler';
+import { Socket } from "socket.io";
+import { io } from "../../main";
+import Token from "./Tokens";
+import dotenv from "dotenv";
+import { ErrorHandler } from "./errorHandler";
 dotenv.config();
 // --- تعريف الواجهات (Interfaces) ---
 
 interface UserPayload {
   id: string;
   name: string;
-  role: 'admin' | 'member';
+  role: "admin" | "member";
 }
 
 // توسيع واجهة Socket لتشمل بيانات المستخدم
@@ -56,7 +55,7 @@ io.use((socket: CustomSocket, next) => {
     socket.user = {
       id: decoded.id,
       name: decoded.name,
-      role: decoded.role
+      role: decoded.role,
     };
 
     next();
@@ -70,7 +69,7 @@ io.use((socket: CustomSocket, next) => {
 // ==========================================================
 io.on("connection", (socket: CustomSocket) => {
   // بما أننا استخدمنا Middleware، فنحن نضمن وجود socket.user
-  const user = socket.user!; 
+  const user = socket.user!;
   const userId = user.id;
 
   // A. الانضمام للغرفة الشخصية
@@ -87,13 +86,13 @@ io.on("connection", (socket: CustomSocket) => {
   socket.on("send_group_message", async (data: GroupMessageData) => {
     const { projectId, content } = data;
 
-    // TODO: (Database Logic) 
+    // TODO: (Database Logic)
     // const savedMsg = await GroupMessage.create({ sender: userId, project: projectId, content });
 
     io.to(projectId).emit("receive_group_message", {
       sender: { id: userId, name: user.name },
       content: content,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -101,7 +100,7 @@ io.on("connection", (socket: CustomSocket) => {
   socket.on("send_announcement", (data: AnnouncementData) => {
     const { projectId, title, content } = data;
 
-    if (user.role !== 'admin') {
+    if (user.role !== "admin") {
       return socket.emit("error_message", "غير مصرح لك بإرسال إعلانات!");
     }
 
@@ -110,7 +109,7 @@ io.on("connection", (socket: CustomSocket) => {
       title: title,
       content: content,
       isImportant: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
   });
 
@@ -122,7 +121,7 @@ io.on("connection", (socket: CustomSocket) => {
     io.to(receiverId).emit("receive_private_message", {
       sender: { id: userId, name: user.name },
       content: content,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     });
 
     // تأكيد الإرسال للمرسل

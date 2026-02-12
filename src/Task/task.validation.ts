@@ -6,16 +6,21 @@ import projectSchema from "../Project/project.schema";
 import validatorMiddleware from "../middlewares/validation.middleware";
 import Task from "./task.interface";
 import taskSchema from "./task.schema";
-import { parseDate, isValidDate, isFutureDate } from "../utils/dateHandler";
+import {
+  parseDate,
+  isValidDate,
+  isFutureDate,
+  getDaysDifference,
+} from "../utils/dateHandler";
 class TaskValidation {
   create = [
     body("color")
       .optional()
       .notEmpty()
       .withMessage("fill it or it will take the default"),
-    body("duration")
+    body("endDate")
       .notEmpty()
-      .withMessage("You need to determine the duration for task")
+      .withMessage("You need to determine the end date for task")
       .custom((val) => {
         const date = parseDate(val);
         if (!date) {
@@ -23,7 +28,7 @@ class TaskValidation {
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
         }
-       // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
+        // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
         if (!isFutureDate(date)) {
           throw new Error("Task duration must be in the future");
         }
@@ -45,6 +50,7 @@ class TaskValidation {
         if (user.role === "admin") {
           throw new Error("Admin cannot have tasks ده انت عمدة");
         }
+      
         return true;
       }),
     param("projectId").custom(async (val, { req }) => {
@@ -53,6 +59,18 @@ class TaskValidation {
       });
       if (!project) {
         throw new Error("Select the project First");
+      }
+      if (
+        req.body.endDate &&
+        new Date(project.endDate) <= new Date(req.body.endDate)
+      ) {
+        throw new Error("Task end date cannot be after project end date");
+      }
+      if (
+        project.usernameAdmin.toString() !== req.CurrentUser.username.toString()&&
+        !project.usernameMember.includes(req.CurrentUser.username.toString())
+      ) {
+        throw new Error("You aren't authorized to add tasks to this project");
       }
       return true;
     }),
@@ -71,16 +89,18 @@ class TaskValidation {
     validatorMiddleware,
   ];
   getAllProjectTask = [
-    param("projectId").isMongoId().withMessage("Invalid Project Id")
-    .custom(async (val, { req }) => {
-      const task: Task | null = await taskSchema.findOne({
-        project: val,
-      });
-      if (!task) {
-        throw new Error("OOOops! please add tasks to this project first");
-      }
-      return true;
-    }),
+    param("projectId")
+      .isMongoId()
+      .withMessage("Invalid Project Id")
+      .custom(async (val, { req }) => {
+        const task: Task | null = await taskSchema.findOne({
+          project: val,
+        });
+        if (!task) {
+          throw new Error("OOOops! please add tasks to this project first");
+        }
+        return true;
+      }),
     validatorMiddleware,
   ];
   delete = [
@@ -100,18 +120,37 @@ class TaskValidation {
       .optional()
       .notEmpty()
       .withMessage("fill it or it will take the default"),
-    body("duration")
+    body("endDate")
       .optional()
-      .custom((val) => {
+      .custom(async (val, { req }) => {
         if (!val) return true;
         const date = parseDate(val);
         if (!date) {
           throw new Error(
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
+          if (req.params!.id) {
+            const task: Task | null = await taskSchema.findById({
+              _id: req.params!.id,
+            });
+            if (task) {
+              task?.duration !=
+                getDaysDifference(new Date(Date.now()), date!)?.toString() +
+                  " Days" || "0 Days";
+              await task!.save();
+            }
+          }
         }
         return true;
       }),
+    body("duration").custom(async (val, { req }) => {
+      if (val) {
+        throw new Error(
+          "Duration field is not allowed, it will be calculated automatically based on the end date",
+        );
+      }
+      return true;
+    }),
     body("description")
       .optional()
       .notEmpty()
@@ -119,12 +158,24 @@ class TaskValidation {
     body("project")
       .optional()
       .notEmpty()
-      .custom(async (val) => {
+      .custom(async (val, { req }) => {
         const project: Project | null = await projectSchema.findById(
           val.toString(),
         );
         if (!project) {
           throw new Error("Select the project First");
+        }
+        if (
+          req.body.endDate &&
+          new Date(project.endDate) <= new Date(req.body.endDate)
+        ) {
+          throw new Error("Task end date cannot be after project end date");
+        }
+        if (
+          project.usernameAdmin.toString() !==
+          req.CurrentUser.username.toString()
+        ) {
+          throw new Error("You aren't authorized to add tasks to this project");
         }
         return true;
       }),

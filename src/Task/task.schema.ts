@@ -4,7 +4,8 @@ import express from "express";
 const TaskSchema = new mongoose.Schema<Task>(
   {
     name: { type: String },
-    duration: { 
+    duration: { type: String},
+    endDate: { 
       type: Date,
       set: (val: string | Date) => {
         // تحويل string إلى Date تلقائياً عند الحفظ

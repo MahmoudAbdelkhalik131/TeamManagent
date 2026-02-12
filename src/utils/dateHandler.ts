@@ -58,7 +58,7 @@ export const formatDateAR = (date: Date | null): string | null => {
  */
 export const getDaysDifference = (
   startDate: Date,
-  endDate: Date
+  endDate: Date,
 ): number | null => {
   const start = startDate instanceof Date ? startDate : new Date(startDate);
   const end = endDate instanceof Date ? endDate : new Date(endDate);

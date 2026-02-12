@@ -16,13 +16,13 @@ class ErrorHandler {
     };
   }
 }
-export {ErrorHandler}
+export { ErrorHandler };
 
 export default function errorHandler(
   err: any,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const status = err.statusCode || err.status || 500;
   const message = err.message || MESSAGES.GENERIC_ERROR;
@@ -44,7 +44,6 @@ export default function errorHandler(
   if (process.env.NODE_ENV !== "production") {
     payload.stack = err.stack;
   }
-  
 
   return res.status(status).json(payload);
 }

@@ -194,6 +194,9 @@ const tasks1: Task[] = await taskSchema.find({
         }
         await project.save();
       }
+      if(task.usernameAdmin.toString() !== req.CurrentUser.username.toString()){
+        return next(new ErrorHandler(401, "You aren't authorized to delete this task"));
+      }
       await taskSchema.findByIdAndDelete(req.params.id);
       res
         .status(200)

@@ -50,7 +50,7 @@ class TaskValidation {
         if (user.role === "admin") {
           throw new Error("Admin cannot have tasks ده انت عمدة");
         }
-      
+
         return true;
       }),
     param("projectId").custom(async (val, { req }) => {
@@ -66,11 +66,16 @@ class TaskValidation {
       ) {
         throw new Error("Task end date cannot be after project end date");
       }
+      console.log(`1`);
       if (
-        project.usernameAdmin.toString() !== req.CurrentUser.username.toString()&&
-        !project.usernameMember.includes(req.CurrentUser.username.toString())
+        project.usernameAdmin.toString() !== req.CurrentUser.username.toString()
       ) {
         throw new Error("You aren't authorized to add tasks to this project");
+      }
+      if (!project.usernameMember.includes(req.body.username)) {
+        throw new Error(
+          "You aren't authorized to add tasks member to this project",
+        );
       }
       return true;
     }),
@@ -112,6 +117,12 @@ class TaskValidation {
         if (!task) {
           throw new Error("Please Enter a valid Task");
         }
+        if (
+          task.usernameAdmin.toString() !== req.CurrentUser.username.toString()
+        ) {
+          throw new Error("You aren't authorized to delete tasks from project");
+        }
+
         return true;
       }),
   ];
@@ -177,6 +188,9 @@ class TaskValidation {
         ) {
           throw new Error("You aren't authorized to add tasks to this project");
         }
+        if (!project.usernameMember.includes(req.body.username.toString())) {
+          throw new Error("You aren't authorized to add tasks to this project");
+        }
         return true;
       }),
     body("username")
@@ -187,7 +201,7 @@ class TaskValidation {
           username: val.toString(),
         });
         if (!user) {
-          throw new Error("Please Log In");
+          throw new Error("user not found");
         }
         return true;
       }),

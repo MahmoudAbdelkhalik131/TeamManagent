@@ -3,7 +3,7 @@ import projectSchema from "./project.schema";
 import validatorMiddleware from "../middlewares/validation.middleware";
 import Project from "./project.interface";
 import userSchema from "../Users/user.schema";
-import { parseDate } from "../utils/dateHandler";
+import { isFutureDate, parseDate } from "../utils/dateHandler";
 
 class ProjectValidation {
   updateOne = [
@@ -30,6 +30,9 @@ class ProjectValidation {
           throw new Error(
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
+        }
+        if (!isFutureDate(date)) {
+          throw new Error("End date must be in the future");
         }
         return true;
       }),
@@ -98,23 +101,29 @@ class ProjectValidation {
       .withMessage("this field is required")
       .custom(async (val) => {
         if (Array.isArray(val)) {
-          val.forEach(async (username: string) => {
-            const userExits = await userSchema.findOne({ username: username });
-            if (!userExits) {
+          for (const username of val) {
+            const user = await userSchema.findOne({
+              username: username.toString(),
+            });
+            if (!user) {
               throw new Error(`User ${username} not found`);
-            }
-            if (userExits.role === "admin") {
+            } else if (user.role === "admin") {
               throw new Error(
                 `Admin User ${username} cannot be added to the project as a member`,
               );
             }
-          });
+          }
         } else {
           const userExits = await userSchema.findOne({
             username: val.toString(),
           });
           if (!userExits) {
             throw new Error(`User ${val} not found`);
+          }
+          if (userExits.role === "admin") {
+            throw new Error(
+              `Admin User ${val} cannot be added to the project as a member`,
+            );
           }
         }
         return true;

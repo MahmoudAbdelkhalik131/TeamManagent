@@ -25,6 +25,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
       enum: ["Active", "Inactive", "Done"],
       default: "Active",
     },
+    totalTasks:{type:Number,default:0}
   },
   { timestamps: true },
 );

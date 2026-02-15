@@ -9,6 +9,7 @@ interface Project extends Document {
   readonly description:string;
   percent:number;
   readonly usernameMember: string[];
+  totalTasks:number;
 
 }
 export default Project;

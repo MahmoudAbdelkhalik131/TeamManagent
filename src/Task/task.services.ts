@@ -142,6 +142,9 @@ const tasks1: Task[] = await taskSchema.find({
       const project: Project | null = await projectSchema.findById({
         _id: task.project._id
       });
+      if(!project){
+        return next(new ErrorHandler(404,"project not found"))
+      }
       if (new Date(project?.endDate!) <= new Date(task.endDate)) {
         return next(
           new ErrorHandler(
@@ -166,6 +169,8 @@ const tasks1: Task[] = await taskSchema.find({
         await task.save();
         await project.save();
       }
+       project.totalTasks++;
+      await project?.save()
       res.status(201).json({ data: task, percent: percent });
     },
   );
@@ -179,6 +184,9 @@ const tasks1: Task[] = await taskSchema.find({
       const project: Project | null = await projectSchema.findOne({
         _id: task.project._id
       });
+      if(!project){
+        return next(new ErrorHandler(404,"project not found"))
+      }
       const tasks: Task[] | null = await taskSchema.find({
         project: task.project._id,
       });
@@ -197,6 +205,8 @@ const tasks1: Task[] = await taskSchema.find({
       if(task.usernameAdmin.toString() !== req.CurrentUser.username.toString()){
         return next(new ErrorHandler(401, "You aren't authorized to delete this task"));
       }
+      project!.totalTasks--;
+      await project?.save()
       await taskSchema.findByIdAndDelete(req.params.id);
       res
         .status(200)

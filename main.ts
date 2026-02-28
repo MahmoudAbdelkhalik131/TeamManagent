@@ -8,6 +8,7 @@ import helmet from "helmet";
 import path from "path";
 import i18n from "i18n";
 import { Server } from "socket.io";
+import { initChat } from "./src/middlewares/chat";
 const app: express.Application = express();
 app.use(express.json({ limit: "1mb" }));
 dotenv.config();
@@ -39,4 +40,8 @@ i18n.configure({
 });
 app.use(i18n.init);
 Routes(app);
+
+// Pass `io` into the chat initialiser. This avoids a circular dependency
+// (chat.ts importing from main.ts) and guarantees io is fully constructed.
 export { io };
+initChat(io);

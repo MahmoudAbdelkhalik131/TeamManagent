@@ -1,10 +1,11 @@
 // need smome changes here
 import { Request, Response, NextFunction } from "express";
 import MESSAGES from "../utils/messages";
-class ErrorHandler {
+class ErrorHandler extends Error {
   public status: number;
   public message: string;
   constructor(status: number, message: string) {
+    super(message)
     this.status = status;
     this.message = message;
     (err: any, req: Request, res: Response, next: NextFunction) => {
@@ -26,13 +27,22 @@ export default function errorHandler(
 ) {
   const status = err.statusCode || err.status || 500;
   const message = err.message || MESSAGES.GENERIC_ERROR;
-
+console.log(err)
   // log server-side details (avoid logging request body with sensitive fields)
   // keep logs minimal in production
   if (process.env.NODE_ENV === "production") {
     console.error(`[ERR] ${status} - ${message}`);
   } else {
     console.error(err);
+  }
+  if(err.name === 'UnauthorizedError'){
+    return res.status(401).json({ message: MESSAGES.AUTH_REQUIRED });
+  }
+  if(err.name === 'JsonWebTokenError'){
+    return res.status(401).json({ message: MESSAGES.AUTH_REQUIRED });
+  }
+  if(err.name === 'TokenExpiredError'){
+    return res.status(401).json({ message: MESSAGES.AUTH_REQUIRED });
   }
 
   if (status === 500 && process.env.NODE_ENV === "production") {
@@ -44,6 +54,6 @@ export default function errorHandler(
   if (process.env.NODE_ENV !== "production") {
     payload.stack = err.stack;
   }
-
+  
   return res.status(status).json(payload);
 }

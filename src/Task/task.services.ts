@@ -8,6 +8,7 @@ import Project from "../Project/project.interface";
 import { getDaysDifference, isFutureDate } from "../utils/dateHandler";
 import { ErrorHandler } from "../middlewares/errorHandler";
 import { log } from "console";
+import { createNotification } from "../notification/notification.services";
 class TaskServices {
   setId(req: Request, res: Response, next: NextFunction) {
     if (req.params.projectId) {
@@ -171,6 +172,15 @@ const tasks1: Task[] = await taskSchema.find({
       }
        project.totalTasks++;
       await project?.save()
+
+      // Notify the assigned member
+      await createNotification(
+        task.usernameMember,
+        "Task Assigned",
+        `You have been assigned a new task: ${task.name} in project ${project!.name}`,
+        task.project._id.toString()
+      );
+
       res.status(201).json({ data: task, percent: percent });
     },
   );
@@ -234,6 +244,15 @@ const tasks1: Task[] = await taskSchema.find({
       }
       updatedTask.duration! = getDaysDifference(new Date(Date.now()),new Date(updatedTask?.endDate!))?.toString()+" Days"||"0 Days"
       await updatedTask?.save({validateModifiedOnly:true})
+
+      // Notify the assignee about task update
+      await createNotification(
+        updatedTask.usernameMember,
+        "Task Updated",
+        `Task details changed: ${updatedTask.name}`,
+        (updatedTask.project as unknown) as string
+      );
+
       res.status(200).json({ data: updatedTask });
     },
   );
@@ -275,6 +294,16 @@ const tasks1: Task[] = await taskSchema.find({
         { status: req.body.status },
         { new: true },
       );
+
+      // Notify admin and member that task status changed
+      if (updatedTask) {
+        const message = `Task '${updatedTask.name}' status changed to '${updatedTask.status}'`;
+        await createNotification(updatedTask.usernameAdmin, "Task Status Updated", message, (updatedTask.project as unknown) as string);
+        if (updatedTask.usernameMember !== updatedTask.usernameAdmin) {
+          await createNotification(updatedTask.usernameMember, "Task Status Updated", message, (updatedTask.project as unknown) as string);
+        }
+      }
+
       res.status(200).json({ data: updatedTask, percent: percent });
     },
   );

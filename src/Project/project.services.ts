@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import taskSchema from "../Task/task.schema";
 import Task from "../Task/task.interface";
 import { getDaysDifference } from "../utils/dateHandler";
+import { notifyProjectMembers, createNotification } from "../notification/notification.services";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -43,6 +44,15 @@ class ProjectServices {
         getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
         " Days";
       await project.save();
+
+      // Notify the members added to this new project
+      await notifyProjectMembers(
+        project.usernameMember,
+        "Project Assigned",
+        `You have been added to a new project: ${project.name}`,
+        project._id.toString()
+      );
+
       res.status(201).json({ data: project });
     },
   );
@@ -113,6 +123,17 @@ class ProjectServices {
           new Date(project?.endDate!),
         )?.toString() + " Days" || "0 Days";
       await project?.save({ validateModifiedOnly: true });
+
+      // Notify members that project was updated
+      if (project) {
+        await notifyProjectMembers(
+          project.usernameMember,
+          "Project Updated",
+          `The project '${project.name}' has been updated.`,
+          project._id.toString()
+        );
+      }
+
       res.status(200).json({ data: project });
     },
   );
@@ -124,6 +145,14 @@ class ProjectServices {
       );
       project!.usernameMember.push(usernameMember);
       await project!.save();
+
+      // Notify the newly added user
+      await createNotification(
+        usernameMember,
+        "Project Assigned",
+        `You have been added to the project: ${project!.name}`,
+        project!._id.toString()
+      );
 
       res
         .status(201)

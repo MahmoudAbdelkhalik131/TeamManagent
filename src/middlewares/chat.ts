@@ -3,6 +3,7 @@ import Token from "./Tokens";
 import dotenv from "dotenv";
 import projectSchema from "../Project/project.schema";
 import MessageModel from "../message/message.schema";
+import Project from "../Project/project.interface";
 dotenv.config();
 
 // ==========================================================
@@ -120,9 +121,10 @@ export function initChat(io: Server) {
    *   Token.createToken() wraps the payload: { user: payload }
    *   so decoded.user is the actual user object.
    */
-  io.use((socket: CustomSocket, next) => {
+  io.use(async(socket: CustomSocket, next) => {
     try {
-      const token = socket.handshake.auth.token as string | undefined;
+      // Standard Socket.IO way: prefer the 'auth' payload over headers, as browser WebSockets don't support custom headers well
+      const token = socket.handshake.auth?.token || (socket.handshake.headers.authorization?.split(" ")[1] as string | undefined);
 
       if (!token) {
         return next(new Error("Authentication error: No token provided"));
@@ -131,8 +133,7 @@ export function initChat(io: Server) {
       const decoded: any = Token.verifyToken(token);
       if (!decoded || !decoded.user) {
         return next(new Error("Authentication error: Invalid token"));
-      }
-
+      }      
       // Store on socket so every event handler can access it without
       // re-reading and re-verifying the JWT on every event
       socket.user = {
@@ -161,6 +162,7 @@ export function initChat(io: Server) {
      * When someone sends a private message to user "alice", we emit to
      * room "alice" — so any of her connected devices/tabs receive it.
      */
+    
     socket.join(user.username);
     console.log(`🚀 Socket connected: ${user.username} [role: ${user.role}]`);
 
@@ -220,7 +222,7 @@ export function initChat(io: Server) {
         if (receiverUsername.trim() === user.username) {
           return emitError(socket, "You cannot send a message to yourself");
         }
-
+        
         // --- Persist to DB ---
         const savedMessage = await MessageModel.create({
           type: "private",
@@ -296,6 +298,7 @@ export function initChat(io: Server) {
           type: "group",
           sender: user.username,
           projectId: projectId,
+          role:user.role, // Store sender's role at the time of message for historical accuracy
           content: content.trim(),
         });
 
@@ -304,6 +307,7 @@ export function initChat(io: Server) {
           _id: savedMessage._id,
           type: "group",
           sender: user.username,
+          role: user.role,
           projectId: projectId,
           content: savedMessage.content,
           createdAt: savedMessage.createdAt,

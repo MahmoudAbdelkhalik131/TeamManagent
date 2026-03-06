@@ -11,6 +11,7 @@ interface Message extends Document {
 
   // Only set for private (one-to-one) messages
   receiver?: string;
+  role: "admin" | "member"; // Only set for group messages to indicate sender's role
 
   // Set for group messages and announcements (links to a Project)
   projectId?: mongoose.Types.ObjectId;

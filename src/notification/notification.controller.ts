@@ -53,3 +53,24 @@ export const markAsRead = expressAsyncHandler(async (req: Request, res: Response
     data: updatedNotification,
   });
 });
+
+/**
+ * @desc Get unread notifications count
+ * @route GET /api/v1/notifications/unread-count
+ * @access Private
+ */
+export const getUnreadCount = expressAsyncHandler(async (req: Request, res: Response) => {
+  // @ts-ignore
+  const username = req.CurrentUser?.username;
+
+  if (!username) {
+    throw new ErrorHandler(401, "Not authorized");
+  }
+
+  const count = await NotificationService.getUnreadNotificationCount(username);
+
+  res.status(200).json({
+    status: "success",
+    data: { count },
+  });
+});

@@ -101,6 +101,22 @@ class DashboardServices {
         usernameAdmin: t.usernameAdmin,
       }));
 
+      // Calculate weekly productivity for the member (tasks assigned to them)
+      const daysArr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const weeklyProductivity = [];
+      const nowDay = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(nowDay);
+        date.setDate(date.getDate() - i);
+        const dayName = daysArr[date.getDay()];
+        const count = tasks.filter(t => {
+          const completedDate = new Date(t.updatedAt || t.createdAt);
+          return t.status === 'Done' &&
+                 completedDate.toDateString() === date.toDateString();
+        }).length;
+        weeklyProductivity.push({ name: dayName, tasks: count });
+      }
+
       const memberDashboard: MemberDashboard = {
         user: {
           username: user.username,
@@ -119,6 +135,7 @@ class DashboardServices {
         projects: projectSummaries,
         tasks: taskSummaries,
         upcomingTasks: upcomingTaskSummaries,
+        weeklyProductivity,
       };
 
       res.status(200).json({ data: memberDashboard });
@@ -234,6 +251,22 @@ class DashboardServices {
         };
       });
 
+      // Calculate weekly productivity for admin (all managed projects)
+      const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+      const weeklyProductivity = [];
+      const nowDay = new Date();
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(nowDay);
+        date.setDate(date.getDate() - i);
+        const dayName = days[date.getDay()];
+        const count = allTasks.filter(t => {
+          const completedDate = new Date(t.updatedAt || t.createdAt);
+          return t.status === 'Done' &&
+                 completedDate.toDateString() === date.toDateString();
+        }).length;
+        weeklyProductivity.push({ name: dayName, tasks: count });
+      }
+
       const adminDashboard: AdminDashboard = {
         user: {
           username: user.username,
@@ -254,6 +287,7 @@ class DashboardServices {
         projects: projectSummaries,
         recentTasks: recentTaskSummaries,
         teamPerformance,
+        weeklyProductivity,
       };
 
       res.status(200).json({ data: adminDashboard });

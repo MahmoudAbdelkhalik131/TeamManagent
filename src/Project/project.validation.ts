@@ -163,7 +163,6 @@ class ProjectValidation {
         if (!userExits) {
           throw new Error("User not found");
         }
-        console.log(userExits.role);
         if (userExits.role === "admin") {
           throw new Error(
             "Admin User cannot be added to the project as a member",

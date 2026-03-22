@@ -31,4 +31,10 @@ projectRouter
     projectServices.deleteOne,
   );
 
+projectRouter.patch(
+  "/:id/status",
+  auth.allowedRoles(["member", "admin"]),
+  projectServices.updateStatus,
+);
+
 export default projectRouter;

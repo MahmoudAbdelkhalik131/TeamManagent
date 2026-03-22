@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import MessageModel from "../message/message.schema";
+import projectSchema from "../Project/project.schema";
 
 class ChatServices {
   /**
@@ -81,6 +82,141 @@ class ChatServices {
       }).sort({ createdAt: 1 });
 
       res.status(200).json({ data: announcements });
+    }
+  );
+
+  /**
+   * GET /api/v1/chat/unread-count
+   */
+  getUnreadCount = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const myUsername = req.CurrentUser.username as string;
+
+      // 1. Private messages unread
+      const privateUnread = await MessageModel.countDocuments({
+        type: "private",
+        receiver: myUsername,
+        readBy: { $ne: myUsername },
+      });
+
+      // 2. Group messages unread
+      // First find projects user is in
+      const myProjects = await projectSchema.find({
+        $or: [
+          { usernameAdmin: myUsername },
+          { usernameMember: myUsername },
+        ]
+      }).select("_id");
+      const projectIds = myProjects.map((p: any) => p._id);
+
+      const groupUnread = await MessageModel.countDocuments({
+        type: { $in: ["group", "announcement"] },
+        projectId: { $in: projectIds },
+        readBy: { $ne: myUsername },
+      });
+
+      res.status(200).json({ 
+        data: { 
+          total: privateUnread + groupUnread,
+          private: privateUnread,
+          group: groupUnread
+        } 
+      });
+    }
+  );
+
+  /**
+   * GET /api/v1/chat/unread-detailed
+   * Returns per-room unread counts so the frontend can show badges.
+   */
+  getDetailedUnread = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const myUsername = req.CurrentUser.username as string;
+
+      // 1. Unread DMs grouped by sender
+      const dmUnread = await MessageModel.aggregate([
+        {
+          $match: {
+            type: "private",
+            receiver: myUsername,
+            readBy: { $ne: myUsername },
+          },
+        },
+        { $group: { _id: "$sender", count: { $sum: 1 } } },
+      ]);
+
+      // 2. Unread group messages grouped by projectId + type
+      const myProjects = await projectSchema.find({
+        $or: [
+          { usernameAdmin: myUsername },
+          { usernameMember: myUsername },
+        ]
+      }).select("_id");
+      const projectIds = myProjects.map((p: any) => p._id);
+
+      const groupUnread = await MessageModel.aggregate([
+        {
+          $match: {
+            type: "group",
+            projectId: { $in: projectIds },
+            readBy: { $ne: myUsername },
+          },
+        },
+        { $group: { _id: "$projectId", count: { $sum: 1 } } },
+      ]);
+
+      const announcementUnread = await MessageModel.aggregate([
+        {
+          $match: {
+            type: "announcement",
+            projectId: { $in: projectIds },
+            readBy: { $ne: myUsername },
+          },
+        },
+        { $group: { _id: "$projectId", count: { $sum: 1 } } },
+      ]);
+
+      // Build a flat map: { "roomType:roomId": count }
+      const unreadMap: Record<string, number> = {};
+      dmUnread.forEach((d: any) => { unreadMap[`dm:${d._id}`] = d.count; });
+      groupUnread.forEach((g: any) => { unreadMap[`group:${g._id}`] = g.count; });
+      announcementUnread.forEach((a: any) => { unreadMap[`announcement:${a._id}`] = a.count; });
+
+      res.status(200).json({ data: unreadMap });
+    }
+  );
+
+  /**
+   * PATCH /api/v1/chat/read
+   * body: { type: 'dm' | 'group', id: 'username' | 'projectId' }
+   */
+  markConversationAsRead = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const myUsername = req.CurrentUser.username as string;
+      const { type, id } = req.body;
+
+      let filter: any = {};
+      if (type === "dm") {
+        filter = {
+          type: "private",
+          $or: [
+            { sender: myUsername, receiver: id },
+            { sender: id, receiver: myUsername },
+          ],
+        };
+      } else {
+        filter = {
+          type: { $in: ["group", "announcement"] },
+          projectId: id,
+        };
+      }
+
+      await MessageModel.updateMany(
+        { ...filter, readBy: { $ne: myUsername } },
+        { $addToSet: { readBy: myUsername } }
+      );
+
+      res.status(200).json({ status: "success" });
     }
   );
 }

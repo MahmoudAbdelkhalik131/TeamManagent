@@ -5,9 +5,9 @@ import RateLimiter from "../middlewares/ratelimiter";
 import auth from "../auth/auth.middleware";
 const UserRouter = Router();
 
-UserRouter.get("/", auth.allowedRoles(["admin"]), userService.gettAllUser);
-UserRouter.post("/login", userValidation.login, userService.login);
-UserRouter.post("/register", userValidation.register, userService.register);
+UserRouter.get("/", auth.verifyToken, userService.gettAllUser);
+UserRouter.post("/login",RateLimiter, userValidation.login, userService.login);
+UserRouter.post("/register",RateLimiter, userValidation.register, userService.register);
 UserRouter.post("/verify", userService.verifyCode);
 UserRouter.post("/password-reset-code", userService.ResetPasswordCode);
 UserRouter.post("/verify-reset-code", userService.verifyCodeForgetPasswordCode);

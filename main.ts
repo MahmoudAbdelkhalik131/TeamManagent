@@ -9,18 +9,34 @@ import path from "path";
 import i18n from "i18n";
 import { Server } from "socket.io";
 import { initChat } from "./src/middlewares/chat";
+import mongoSanitize from 'express-mongo-sanitize';
+
 const app: express.Application = express();
 app.use(express.json({ limit: "1mb" }));
 dotenv.config();
 Connection();
 app.use(helmet());
-app.use(cors());
+app.use(cors(
+  {
+    origin:["http://localhost:8080"],
+    credentials:true
+  }
+));
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
     methods: ["GET", "POST"],
+    
   },
+  maxHttpBufferSize: 1e5,
+  
+});
+// Sanitize only body and params (req.query is read-only in newer Express)
+app.use((req, res, next) => {
+  if (req.body) req.body = mongoSanitize.sanitize(req.body);
+  if (req.params) req.params = mongoSanitize.sanitize(req.params);
+  next();
 });
 server.listen(process.env.PORT, () => {
   console.log(`server started on port ${process.env.PORT} with cors enabled`);

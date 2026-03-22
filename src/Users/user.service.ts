@@ -4,28 +4,25 @@ import Users from "./user.interface";
 import bcrypt from "bcrypt";
 import { Request, Response, NextFunction } from "express";
 import Token from "../middlewares/Tokens";
-import MESSAGES from "../utils/messages";
 import { ErrorHandler } from "../middlewares/errorHandler";
 import sendEmail from "../utils/sendEmail";
-import { console } from "inspector";
-import UserRouter from "./user.route";
 
 
 class UserServices {
   gettAllUser = async (req: Request, res: Response, next: NextFunction) => {
-    const users: Users[] | null = await userSchema.find();
+    const users: Users[] | null = await userSchema.find().select("-password -verifyCode -forgetPasswordCode");
     res.status(200).json({ data: users });
   };
   login = async (req: Request, res: Response, next: NextFunction) => {
     const user: Users | null = await userSchema.findOne({
       email: req.body.email,
     });
-    console.log(user?.password);
     if (!user) {
       return next(new ErrorHandler(400, "Invalid email or password"));
     }
     const token = Token.createToken(user);
-    res.status(200).json({ data: user, token: token });
+    const { password, verifyCode, forgetPasswordCode, ...safeUser } = user.toObject();
+    res.status(200).json({ data: safeUser, token: token });
   };
   register = async (req: Request, res: Response, next: NextFunction) => {
     const verifyCode =  Math.floor(100000 + Math.random() * 900000).toString();
@@ -43,7 +40,6 @@ class UserServices {
     }); 
     const token = Token.createToken(user);
     res.status(200).json({
-      user:user,
       token: token,
       message: "verification code sent successfully Please check your email",
     });
@@ -56,14 +52,12 @@ class UserServices {
           return next(new ErrorHandler(401, `${req.__("check_active")}`));
         }
         const decode: any = Token.verifyToken(token);
-        console.log("1");
         if(!decode) {
           return next(new ErrorHandler(401, `${req.__("check_active")}`));
         }
         if (!decode.user) {
           return next(new ErrorHandler(400, `${req.__("allowed_to")}`));
         }
-        console.log("1");
         if (req.body.verifyCode !== decode.user.verifyCode) {
           return next(new ErrorHandler(400, `${req.__("check_code_valid")}`));
         }
@@ -135,8 +129,6 @@ class UserServices {
   );
   resetPassword = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log("1");
-      console.log(req.headers.authorization);
       if (req.headers.authorization) {
         const token = req.headers.authorization?.split(" ")[1];
 

@@ -182,6 +182,7 @@ export function initChat(io: Server) {
      */
     socket.on("join_project", (projectId: string) => {
       if (!projectId || typeof projectId !== "string") {
+        console.warn(`join_project failed: invalid projectId from ${projectId}`);
         return emitError(socket, "Invalid projectId for join_project");
       }
       socket.join(projectId);
@@ -229,6 +230,7 @@ export function initChat(io: Server) {
           sender: user.username,
           receiver: receiverUsername.trim(),
           content: content.trim(),
+          readBy: [user.username],
         });
 
         // --- Payload emitted to clients ---
@@ -300,6 +302,7 @@ export function initChat(io: Server) {
           projectId: projectId,
           role:user.role, // Store sender's role at the time of message for historical accuracy
           content: content.trim(),
+          readBy: [user.username],
         });
 
         // --- Broadcast to all project room members ---
@@ -376,6 +379,7 @@ export function initChat(io: Server) {
           projectId: projectId,
           title: title.trim(),
           content: content.trim(),
+          readBy: [user.username],
         });
 
         // --- Broadcast to everyone in the project room ---

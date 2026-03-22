@@ -30,10 +30,11 @@ class UserValidation {
     body("password")
       .notEmpty()
       .withMessage("Password is required")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+      .withMessage("Password must contain at least one uppercase letter, one lowercase letter, one number and one special character")
       .custom((val, { req }) => {
-        if (val.length < 8) {
-          throw new Error("Password must be at least 8 characters long");
-        }
         const confirmPassword = req.body.confirmPassword;
         if (val !== confirmPassword) {
           throw new Error("Password and Confirm Password do not match");
@@ -48,7 +49,6 @@ class UserValidation {
       .withMessage("email is required")
       .custom(async (val, { req }) => {
         const user: Users | null = await userSchema.findOne({ email: val });
-        console.log(user);
         if (!user || user.validUser == false) {
           await userSchema.deleteOne({ email: val });
           throw new Error("User not found please register first.....");
@@ -69,6 +69,10 @@ class UserValidation {
     body("password")
       .notEmpty()
       .withMessage("password is required")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+      .withMessage("Password must contain at least one uppercase letter, one lowercase letter, one number and one special character")
       .custom(async (val, { req }) => {
         const confirmPassword: string = req.body.confirmPassword;
         if (confirmPassword !== val) {

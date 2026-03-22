@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import Users from "../Users/user.interface";
 class Tokens {
   createToken(payload: any) {
     const expire: any = process.env.JWT_EXPIRE_DATE;

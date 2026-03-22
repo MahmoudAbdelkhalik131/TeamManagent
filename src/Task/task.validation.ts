@@ -40,7 +40,6 @@ class TaskValidation {
     body("username")
       .notEmpty()
       .custom(async (val, { req }) => {
-        // console.log(val)
         const user: Users | null = await userSchema.findOne({
           username: val.toString(),
         });
@@ -66,7 +65,7 @@ class TaskValidation {
       ) {
         throw new Error("Task end date cannot be after project end date");
       }
-      console.log(`1`);
+     
       if (
         project.usernameAdmin.toString() !== req.CurrentUser.username.toString()
       ) {

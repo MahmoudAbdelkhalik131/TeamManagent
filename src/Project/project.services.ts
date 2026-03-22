@@ -6,6 +6,7 @@ import taskSchema from "../Task/task.schema";
 import Task from "../Task/task.interface";
 import { getDaysDifference } from "../utils/dateHandler";
 import { notifyProjectMembers, createNotification } from "../notification/notification.services";
+import userSchema from "../Users/user.schema";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -83,6 +84,13 @@ class ProjectServices {
         return next(new Error("Please add tasks to this project"));
       }
       const member: number = project?.usernameMember.length!;
+      if(!member){
+        return next(new Error("Please add members to this project"));
+      }
+      const emails:string[]=await Promise.all( project.usernameMember.map(async(username)=>{
+        const user=await userSchema.findOne({username:username})
+        return user?.email || "";
+      }))
       const pending: number = taskProject.filter(
         (t) => t.status === "Pending",
       ).length;
@@ -104,6 +112,7 @@ class ProjectServices {
         Inprogress: Inprogress,
         Done: Done,
         percent: percent,
+        emails:emails
       });
     },
   );
@@ -158,6 +167,18 @@ class ProjectServices {
         .status(201)
         .json({ message: "congratulation user added succefully !!!!!!!!!!!" });
     },
+  );
+  updateStatus = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { status } = req.body;
+      const project: Project | null = await projectSchema.findByIdAndUpdate(
+        req.params.id,
+        { status },
+        { new: true }
+      );
+      if (!project) return next(new Error("Project not found"));
+      res.status(200).json({ status: "success", data: project });
+    }
   );
 }
 const projectServices = new ProjectServices();

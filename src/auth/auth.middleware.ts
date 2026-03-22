@@ -34,7 +34,6 @@ class Auth {
       return res.status(401).json({ message: "Unauthorized1" });
     }
     try {
-      console.log("1")
       const decoded: any = Token.verifyTokenCode(token);
       if (!decoded) {
         return res.status(401).json({ message: "Unauthorized" });

@@ -32,4 +32,25 @@ chatRouter.get(
   chatServices.getAnnouncements
 );
 
+// --- GET: total unread messages count ---
+chatRouter.get(
+  "/unread-count",
+  auth.verifyToken,
+  chatServices.getUnreadCount
+);
+
+// --- GET: per-room unread counts ---
+chatRouter.get(
+  "/unread-detailed",
+  auth.verifyToken,
+  chatServices.getDetailedUnread
+);
+
+// --- PATCH: mark a conversation as read ---
+chatRouter.patch(
+  "/read",
+  auth.verifyToken,
+  chatServices.markConversationAsRead
+);
+
 export default chatRouter;

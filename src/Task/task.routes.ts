@@ -44,7 +44,7 @@ taskRouter
 taskRouter
   .route("/:id")
   .patch(
-    auth.allowedRoles(["member"]),
+    auth.allowedRoles(["member", "admin"]),
     taskServices.updateStatus
   )
   .put(

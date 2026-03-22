@@ -63,6 +63,7 @@ export interface MemberDashboard {
   projects: ProjectSummary[];
   tasks: TaskSummary[];
   upcomingTasks: TaskSummary[];
+  weeklyProductivity: { name: string; tasks: number }[];
 }
 
 // Admin dashboard data
@@ -91,4 +92,5 @@ export interface AdminDashboard {
     completedTasks: number;
     completionRate: number;
   }[];
+  weeklyProductivity: { name: string; tasks: number }[];
 }

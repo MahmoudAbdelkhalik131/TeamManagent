@@ -20,7 +20,8 @@ interface Message extends Document {
   content: string;
 
   // Only set for announcements — a short subject line
-  title?: string;
+  readonly title?: string;
+  readonly readBy?: string[];
 
   // Mongoose adds these automatically via { timestamps: true }
   createdAt: Date;

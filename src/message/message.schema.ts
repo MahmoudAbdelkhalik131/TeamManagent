@@ -46,6 +46,10 @@ const messageSchema = new mongoose.Schema<Message>(
       maxlength: [200, "Announcement title cannot exceed 200 characters"],
       default: null,
     },
+    readBy: {
+      type: [String],
+      default: [],
+    },
   },
   {
     // Adds createdAt & updatedAt automatically — clients use createdAt to sort messages

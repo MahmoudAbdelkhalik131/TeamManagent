@@ -7,7 +7,6 @@ import projectSchema from "../Project/project.schema";
 import Project from "../Project/project.interface";
 import { getDaysDifference, isFutureDate } from "../utils/dateHandler";
 import { ErrorHandler } from "../middlewares/errorHandler";
-import { log } from "console";
 import { createNotification } from "../notification/notification.services";
 class TaskServices {
   setId(req: Request, res: Response, next: NextFunction) {
@@ -187,7 +186,6 @@ const tasks1: Task[] = await taskSchema.find({
   delete = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       const task: Task | null = await taskSchema.findById(req.params.id.toString());
-      console.log(task)
       if (!task) {
         return next(new Error("No Task "));
       }

@@ -30,7 +30,7 @@ class UserServices {
       username: req.body.username,
       email: req.body.email,
       password: await bcrypt.hash(req.body.password, 10),
-      role: req.body.role,
+      role: req.body.role || "member",
       verifyCode: verifyCode,
     };
     await sendEmail({
@@ -61,13 +61,13 @@ class UserServices {
         if (req.body.verifyCode !== decode.user.verifyCode) {
           return next(new ErrorHandler(400, `${req.__("check_code_valid")}`));
         }
-         const userCreated =await userSchema.create({
-          username:decode.user.username.toString(),
-          email:decode.user.email.toString(),
-          password:decode.user.password.toString(),
-          role:decode.user.role.toString(),
-          verifyCode:decode.user.verifyCode.toString(),
-          validUser:false
+         const userCreated = await userSchema.create({
+          username: decode.user.username,
+          email: decode.user.email,
+          password: decode.user.password,
+          role: decode.user.role || "member",
+          verifyCode: decode.user.verifyCode,
+          validUser: false
          })
          userCreated.validUser = true;
          userCreated.verifyCode = await bcrypt.hash(userCreated.verifyCode, 10);
@@ -148,6 +148,14 @@ class UserServices {
         return next(new ErrorHandler(404, `${req.__("check_reset_code")}`));
       }
     },
+  );
+  getMyTeam = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const users: Users[] | null = await userSchema.find({
+        username: { $in: req.CurrentUser.teamMates || [] }
+      }).select("-password -verifyCode -forgetPasswordCode");
+      res.status(200).json({ data: users });
+    }
   );
 }
 const userSevices = new UserServices();

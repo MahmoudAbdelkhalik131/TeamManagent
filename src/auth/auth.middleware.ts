@@ -19,7 +19,7 @@ class Auth {
       if (!user) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      req.CurrentUser = decoded.user;
+      req.CurrentUser = user;
 
       // Attach the decoded token to the request object
     } catch (err: Error | any) {
@@ -65,7 +65,7 @@ class Auth {
         if (!user) {
           return res.status(401).json({ message: "Unauthorized" });
         }
-        req.CurrentUser = decoded.user;
+        req.CurrentUser = user;
         // Attach the decoded token to the request object
         if (roles.includes(decoded.user.role)) {
           return next();

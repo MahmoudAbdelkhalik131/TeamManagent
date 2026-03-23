@@ -2,6 +2,7 @@ import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import MessageModel from "../message/message.schema";
 import projectSchema from "../Project/project.schema";
+import userSchema from "../Users/user.schema";
 
 class ChatServices {
   /**
@@ -25,6 +26,13 @@ class ChatServices {
     async (req: Request, res: Response, next: NextFunction) => {
       const myUsername = req.CurrentUser.username as string;
       const otherUsername = req.params.receiverUsername;
+
+      // Check if the other user is in the team
+      const me = await userSchema.findOne({ username: myUsername });
+      if (!me || !me.teamMates || !me.teamMates.includes(otherUsername)) {
+        res.status(403).json({ message: "You can only chat with your team members" });
+        return;
+      }
 
       const messages = await MessageModel.find({
         type: "private",

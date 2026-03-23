@@ -6,6 +6,7 @@ import auth from "../auth/auth.middleware";
 const UserRouter = Router();
 
 UserRouter.get("/", auth.verifyToken, userService.gettAllUser);
+UserRouter.get("/my-team", auth.verifyToken, userService.getMyTeam);
 UserRouter.post("/login",RateLimiter, userValidation.login, userService.login);
 UserRouter.post("/register",RateLimiter, userValidation.register, userService.register);
 UserRouter.post("/verify", userService.verifyCode);

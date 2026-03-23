@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import projectSchema from "../Project/project.schema";
 import MessageModel from "../message/message.schema";
 import Project from "../Project/project.interface";
+import userSchema from "../Users/user.schema";
 dotenv.config();
 
 // ==========================================================
@@ -222,6 +223,12 @@ export function initChat(io: Server) {
         }
         if (receiverUsername.trim() === user.username) {
           return emitError(socket, "You cannot send a message to yourself");
+        }
+
+        // --- Team Check ---
+        const sender = await userSchema.findOne({ username: user.username });
+        if (!sender || !sender.teamMates || !sender.teamMates.includes(receiverUsername.trim())) {
+          return emitError(socket, "You can only send messages to your team members");
         }
         
         // --- Persist to DB ---

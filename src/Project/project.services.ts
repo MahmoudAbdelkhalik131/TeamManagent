@@ -37,14 +37,39 @@ class ProjectServices {
   );
   create = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
+      const adminUsername = req.CurrentUser.username.toString();
       const project: Project = await projectSchema.create({
-        usernameAdmin: req.CurrentUser.username.toString(),
+        usernameAdmin: adminUsername,
         ...req.body,
       });
       project.duration =
         getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
         " Days";
       await project.save();
+
+      // Team Flagging Logic: Link admin and members in each other's teamMates list
+      const admin = await userSchema.findOne({ username: adminUsername });
+      if (admin) {
+        if (!admin.teamMates) admin.teamMates = [];
+        
+        for (const memberUsername of project.usernameMember) {
+          // Add member to admin's team
+          if (!admin.teamMates.includes(memberUsername)) {
+            admin.teamMates.push(memberUsername);
+          }
+
+          // Add admin to member's team
+          const member = await userSchema.findOne({ username: memberUsername });
+          if (member) {
+            if (!member.teamMates) member.teamMates = [];
+            if (!member.teamMates.includes(adminUsername)) {
+              member.teamMates.push(adminUsername);
+              await member.save();
+            }
+          }
+        }
+        await admin.save();
+      }
 
       // Notify the members added to this new project
       await notifyProjectMembers(

@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema<Users>(
     verifyCode: { type: String },
     forgetPasswordCode: { type: String },
     email: { type: String, unique: true },
+    teamMates: { type: [String], default: [] },
   },
   { timestamps: true },
 );

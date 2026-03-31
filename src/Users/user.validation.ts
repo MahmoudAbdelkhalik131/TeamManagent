@@ -82,6 +82,28 @@ class UserValidation {
       }),
     validatorMiddleware,
   ];
+  updatePassword = [
+    body("oldPassword").notEmpty().withMessage("Old password is required"),
+    body("newPassword")
+      .notEmpty()
+      .withMessage("New password is required")
+      .isLength({ min: 8 })
+      .withMessage("Password must be at least 8 characters long")
+      .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/)
+      .withMessage(
+        "Password must contain at least one uppercase letter, one lowercase letter, one number and one special character",
+      ),
+    body("confirmPassword")
+      .notEmpty()
+      .withMessage("Confirm password is required")
+      .custom((val, { req }) => {
+        if (val !== req.body.newPassword) {
+          throw new Error("Password and Confirm Password do not match");
+        }
+        return true;
+      }),
+    validatorMiddleware,
+  ];
 }
 const userValidation = new UserValidation();
 export default userValidation;

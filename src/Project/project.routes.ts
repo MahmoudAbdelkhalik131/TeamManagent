@@ -3,11 +3,14 @@ import projectServices from "./project.services";
 import projectValidation from "./project.validation";
 import auth from "../auth/auth.middleware";
 import taskRouter from "../Task/task.routes";
+import { uploadMultiple } from "../middlewares/uploadMiddleware";
+
 export const projectRouter: Router = Router({});
 projectRouter.use("/:projectId/task", taskRouter);
 projectRouter.post(
-  "/create",
+  "/",
   auth.allowedRoles(["admin"]),
+uploadMultiple,
   projectValidation.create,
   projectServices.create,
 );
@@ -17,13 +20,9 @@ projectRouter
   .get(auth.verifyToken, projectValidation.getone, projectServices.getOne)
   .put(
     auth.allowedRoles(["admin"]),
+    uploadMultiple,
     projectValidation.updateOne,
     projectServices.updateOne,
-  )
-  .post(
-    auth.allowedRoles(["admin"]),
-    projectValidation.AddUser,
-    projectServices.AddUser,
   )
   .delete(
     auth.allowedRoles(["admin"]),
@@ -31,10 +30,29 @@ projectRouter
     projectServices.deleteOne,
   );
 
+projectRouter.post(
+  "/:id/members",
+  auth.allowedRoles(["admin"]),
+  projectValidation.AddUser,
+  projectServices.AddUser,
+);
+
 projectRouter.patch(
   "/:id/status",
-  auth.allowedRoles(["member", "admin"]),
+  auth.allowedRoles(["admin"]),
   projectServices.updateStatus,
+);
+
+projectRouter.get(
+  "/:id/activities",
+  auth.verifyToken,
+  projectServices.getActivities,
+);
+
+projectRouter.delete(
+  "/:id/att/:public_id",
+  auth.allowedRoles(["admin"]),
+  projectServices.deleteAttachment,
 );
 
 export default projectRouter;

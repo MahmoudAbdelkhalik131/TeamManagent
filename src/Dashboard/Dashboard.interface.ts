@@ -11,7 +11,9 @@ export interface DashboardStats {
   totalTasks: number;
   pendingTasks: number;
   inProgressTasks: number;
+  reviewingTasks: number;
   doneTasks: number;
+  acceptedTasks: number;
   overallCompletionRate: number;
   overdueProjects: number;
   overdueTasks: number;
@@ -30,13 +32,15 @@ export interface ProjectSummary {
   memberCount: number;
   taskCount: number;
   completedTaskCount: number;
+  acceptedTaskCount: number;
+  statusBreakdown: Record<string, number>;
 }
 
 // Task summary for dashboard
 export interface TaskSummary {
   _id: string;
   name: string;
-  status: "Pending" | "In-progress" | "Done";
+  status: "Pending" | "In-progress" | "Done" | "Reviewing" | "Accepted";
   duration: string;
   endDate: Date;
   color: string;
@@ -57,13 +61,16 @@ export interface MemberDashboard {
     completedTasks: number;
     pendingTasks: number;
     inProgressTasks: number;
+    reviewingTasks: number;
+    doneTasks: number;
+    acceptedTasks: number;
     personalCompletionRate: number;
     upcomingDeadlines: number;
   };
   projects: ProjectSummary[];
   tasks: TaskSummary[];
   upcomingTasks: TaskSummary[];
-  weeklyProductivity: { name: string; tasks: number }[];
+  weeklyProductivity: Record<string, TaskSummary[]>;
 }
 
 // Admin dashboard data
@@ -80,6 +87,9 @@ export interface AdminDashboard {
     completedTasks: number;
     pendingTasks: number;
     inProgressTasks: number;
+    reviewingTasks: number;
+    doneTasks: number;
+    acceptedTasks: number;
     teamCompletionRate: number;
     activeProjects: number;
     doneProjects: number;
@@ -90,7 +100,9 @@ export interface AdminDashboard {
     memberUsername: string;
     totalTasks: number;
     completedTasks: number;
+    acceptedTasks: number;
     completionRate: number;
+    rating: number;
   }[];
-  weeklyProductivity: { name: string; tasks: number }[];
+  weeklyProductivity: Record<string, TaskSummary[]>;
 }

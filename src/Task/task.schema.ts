@@ -24,9 +24,24 @@ const TaskSchema = new mongoose.Schema<Task>(
     status: {
       type: String,
       required: true,
-      enum: ["Pending", "In-progress", "Done"],
+      enum: ["Pending", "In-progress", "Done", "Reviewing", "Accepted"],
       default: "Pending",
     },
+    note: { type: String },
+        attachments: [
+      {
+        public_id: { type: String }, // use this to delete the file later
+        secure_url: { type: String }, // the public HTTPS URL
+        resource_type: { type: String },
+        format: { type: String },
+        bytes: { type: Number },
+      },
+    ],
+  adminFiles:{type:Boolean,default:false},
+  memberFiles:{type:Boolean,default:false},
+  reviewCycles: { type: Number, default: 0 },
+  firstDoneAt: { type: Date },
+  lastOverdueNotificationAt: { type: Date }
   },
   { timestamps: true }
 );

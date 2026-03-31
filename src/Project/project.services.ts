@@ -7,32 +7,34 @@ import Task from "../Task/task.interface";
 import { getDaysDifference } from "../utils/dateHandler";
 import { notifyProjectMembers, createNotification } from "../notification/notification.services";
 import userSchema from "../Users/user.schema";
+import ActivityService from "../activity/activity.services";
+import { ErrorHandler } from "../middlewares/errorHandler";
+import { cloudinary, CloudinaryUploadResult, uploadToCloudinary } from "../middlewares/cloudinary";
 class ProjectServices {
   getAll = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      console.log(req.CurrentUser.username.toString());
-      const project: Project[] | null = await projectSchema.find({
+      const projects: Project[] = await projectSchema.find({
         $or: [
           { usernameMember: req.CurrentUser.username.toString() },
           { usernameAdmin: req.CurrentUser.username.toString() },
         ],
       });
-      if (!project) res.json({ message: "OPSss THERE IS NO DATA" });
-      project.forEach(async (p) => {
-        if (p.endDate > new Date(Date.now())) {
-          p.duration = p.endDate
-            ? Math.ceil(
-                (p.endDate.getTime() - new Date().getTime()) /
-                  (1000 * 3600 * 24),
-              ) + " day(s)"
-            : "No End Date";
+
+      const updatedProjects = projects.map((p) => {
+        const project = p.toObject() as any;
+        if (project.endDate && new Date(project.endDate) > new Date()) {
+          project.duration = Math.ceil(
+            (new Date(project.endDate).getTime() - new Date().getTime()) /
+            (1000 * 3600 * 24),
+          ) + " day(s)";
         } else {
-          p.duration = "No End Date";
-          p.status = "Inactive";
+          project.duration = "No End Date";
+          if (project.endDate) project.status = "Inactive";
         }
-        await p.save();
+        return project;
       });
-      res.status(200).json({ data: project });
+
+      res.status(200).json({ data: updatedProjects });
     },
   );
   create = asyncHandler(
@@ -42,6 +44,13 @@ class ProjectServices {
         usernameAdmin: adminUsername,
         ...req.body,
       });
+      if (req.files) {
+        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
+        const results = await Promise.all(uploadPromises);
+        project.attachments = results.map((r: CloudinaryUploadResult) => r);
+        await project.save()
+      }
       project.duration =
         getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
         " Days";
@@ -51,7 +60,7 @@ class ProjectServices {
       const admin = await userSchema.findOne({ username: adminUsername });
       if (admin) {
         if (!admin.teamMates) admin.teamMates = [];
-        
+
         for (const memberUsername of project.usernameMember) {
           // Add member to admin's team
           if (!admin.teamMates.includes(memberUsername)) {
@@ -79,14 +88,40 @@ class ProjectServices {
         project._id.toString()
       );
 
+      // Log Activity
+      await ActivityService.log({
+        user: req.CurrentUser._id,
+        username: req.CurrentUser.username,
+        action: "Created Project",
+        targetType: "Project",
+        targetId: project._id.toString(),
+        targetName: project.name,
+      });
+
       res.status(201).json({ data: project });
     },
   );
   deleteOne = asyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
+      const project = await projectSchema.findById(req.params.id);
+      if (!project) {
+        return next(new ErrorHandler(404, "Project not found"));
+      }
+
       await taskSchema.deleteMany({ project: req.params.id });
       await projectSchema.findByIdAndDelete(req.params.id);
-      res.status(200).json({ message: "Item deleted succefully" });
+
+      // Log Activity
+      await ActivityService.log({
+        user: req.CurrentUser._id,
+        username: req.CurrentUser.username,
+        action: "Deleted Project",
+        targetType: "Project",
+        targetId: req.params.id,
+        targetName: project.name,
+      });
+
+      res.status(200).json({ message: "Project deleted successfully" });
     },
   );
   getOne = asyncHandler(
@@ -97,23 +132,23 @@ class ProjectServices {
       if (!project) {
         return next(new Error("project not found"));
       }
-      project.duration =
+      const projectObj = project.toObject() as any;
+      projectObj.duration =
         getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
         " Days";
-      await project.save();
       const taskProject = await taskSchema.find({
         project: project._id!.toString(),
       });
       req.projectId = req.params.id;
-      if (!taskProject) {
-        return next(new Error("Please add tasks to this project"));
-      }
+      // if (!taskProject) {
+      //   return next(new Error("Please add tasks to this project"));
+      // }
       const member: number = project?.usernameMember.length!;
-      if(!member){
-        return next(new Error("Please add members to this project"));
-      }
-      const emails:string[]=await Promise.all( project.usernameMember.map(async(username)=>{
-        const user=await userSchema.findOne({username:username})
+      // if (!member) {
+      //   return next(new Error("Please add members to this project"));
+      // }
+      const emails: string[] = await Promise.all(project.usernameMember.map(async (username) => {
+        const user = await userSchema.findOne({ username: username })
         return user?.email || "";
       }))
       const pending: number = taskProject.filter(
@@ -122,22 +157,26 @@ class ProjectServices {
       const Inprogress: number = taskProject.filter(
         (t) => t.status === "In-progress",
       ).length;
+      const Reviewing = taskProject.filter((t) => t.status === "Reviewing").length;
+      const Accepted = taskProject.filter((t) => t.status === "Accepted").length;
       const Done: number = taskProject.filter(
         (t) => t.status === "Done",
       ).length;
       const percent: number =
         taskProject.length > 0
-          ? Math.round((Done / taskProject.length) * 100)
+          ? Math.round((Accepted / taskProject.length) * 100)
           : 0;
       res.status(200).json({
-        data: project,
+        data: projectObj,
         tasks: taskProject,
         member: member,
         pending: pending,
         Inprogress: Inprogress,
+        Reviewing: Reviewing,
+        Accepted: Accepted,
         Done: Done,
         percent: percent,
-        emails:emails
+        emails: emails
       });
     },
   );
@@ -150,6 +189,14 @@ class ProjectServices {
       );
       if (!project) {
         return next(new Error("project not found"));
+      }
+      if (req.files) {
+        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
+        const results = await Promise.all(uploadPromises);
+        if (!project.attachments) project.attachments = [];
+        project.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
+        await project.save()
       }
       project.duration! =
         getDaysDifference(
@@ -166,6 +213,16 @@ class ProjectServices {
           `The project '${project.name}' has been updated.`,
           project._id.toString()
         );
+
+        // Log Activity
+        await ActivityService.log({
+          user: req.CurrentUser._id,
+          username: req.CurrentUser.username,
+          action: "Updated Project",
+          targetType: "Project",
+          targetId: project._id.toString(),
+          targetName: project.name,
+        });
       }
 
       res.status(200).json({ data: project });
@@ -188,9 +245,20 @@ class ProjectServices {
         project!._id.toString()
       );
 
+      // Log Activity
+      await ActivityService.log({
+        user: req.CurrentUser._id,
+        username: req.CurrentUser.username,
+        action: "Added Member",
+        targetType: "Project",
+        targetId: project!._id.toString(),
+        targetName: project!.name,
+        details: { member: usernameMember },
+      });
+
       res
         .status(201)
-        .json({ message: "congratulation user added succefully !!!!!!!!!!!" });
+        .json({ message: "Member added successfully" });
     },
   );
   updateStatus = asyncHandler(
@@ -202,9 +270,42 @@ class ProjectServices {
         { new: true }
       );
       if (!project) return next(new Error("Project not found"));
-      res.status(200).json({ status: "success", data: project });
+
+      // Log Activity
+      await ActivityService.log({
+        user: req.CurrentUser._id,
+        username: req.CurrentUser.username,
+        action: "Changed Status",
+        targetType: "Project",
+        targetId: project._id.toString(),
+        targetName: project.name,
+        details: { status },
+      });
+
+      res.status(200).json({ data: project });
     }
   );
+
+  getActivities = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const activities = await ActivityService.getByProject(req.params.id);
+      res.status(200).json({ data: activities });
+    }
+  );
+  deleteAttachment = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+      const project: Project | null = await projectSchema.findById(req.params.id);
+      if (!project) {
+        return next(new Error("No project "));
+      }
+      const attachment = project.attachments?.find((a) => a.public_id === req.params.public_id);
+      if (!attachment) {
+        return next(new Error("Attachment not found"));
+      }
+      await cloudinary.uploader.destroy(attachment.public_id)
+      project.attachments = project.attachments?.filter((a) => a.public_id !== req.params.public_id);
+      await project.save();
+      res.status(200).json({ data: project });
+    })
 }
 const projectServices = new ProjectServices();
 export default projectServices;

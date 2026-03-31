@@ -17,6 +17,12 @@ UserRouter.post(
   userValidation.ChangePassword,
   userService.resetPassword,
 );
+UserRouter.put(
+  "/update-password",
+  auth.verifyToken,
+  userValidation.updatePassword,
+  userService.updatePassword,
+);
 
 export default UserRouter;
 

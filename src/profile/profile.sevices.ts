@@ -13,7 +13,7 @@ class ProfileServices {
       if (req.CurrentUser) {
         const user: Users | null = await userSchema.findById({
           _id: req.CurrentUser._id.toString(),
-        });
+        }).select("-password -verifyCode -forgetPasswordCode");
         res.status(200).json({ data: user });
       } else {
         return next(new ErrorHandler(401, "Please Login first"));

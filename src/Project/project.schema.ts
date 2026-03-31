@@ -25,7 +25,16 @@ const ProjectSchema = new mongoose.Schema<Project>(
       enum: ["Active", "Inactive", "Done"],
       default: "Active",
     },
-    totalTasks:{type:Number,default:0}
+    totalTasks: { type: Number, default: 0 },
+    attachments: [
+      {
+        public_id: { type: String }, // use this to delete the file later
+        secure_url: { type: String }, // the public HTTPS URL
+        resource_type: { type: String },
+        format: { type: String },
+        bytes: { type: Number },
+      },
+    ],
   },
   { timestamps: true },
 );

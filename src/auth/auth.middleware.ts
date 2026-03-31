@@ -23,7 +23,7 @@ class Auth {
 
       // Attach the decoded token to the request object
     } catch (err: Error | any) {
-      throw new Error(err.message);
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     next();
@@ -42,8 +42,7 @@ class Auth {
 
       // Attach the decoded token to the request object
     } catch (err: any) {
-      console.log(token);
-      throw new Error(err);
+      return res.status(401).json({ message: "Unauthorized" });
     }
 
     next();

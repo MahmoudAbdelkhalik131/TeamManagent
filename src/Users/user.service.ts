@@ -20,6 +20,13 @@ class UserServices {
     if (!user) {
       return next(new ErrorHandler(400, "Invalid email or password"));
     }
+
+    // Defense in depth: never rely only on validation middleware for password checks.
+    const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password);
+    if (!isPasswordCorrect) {
+      return next(new ErrorHandler(400, "Invalid email or password"));
+    }
+
     const token = Token.createToken(user);
     const { password, verifyCode, forgetPasswordCode, ...safeUser } = user.toObject();
     res.status(200).json({ data: safeUser, token: token });
@@ -38,7 +45,7 @@ class UserServices {
       subject: "You verification code is ",
       email: user.email.toString(),
     }); 
-    const token = Token.createToken(user);
+    const token = Token.createVerificationToken(user);
     res.status(200).json({
       token: token,
       message: "verification code sent successfully Please check your email",
@@ -72,7 +79,7 @@ class UserServices {
          userCreated.validUser = true;
          userCreated.verifyCode = await bcrypt.hash(userCreated.verifyCode, 10);
          await userCreated.save();
-        res.status(200).json({ message: "You have registared successfully" });
+        res.status(200).json({ message: "You have registered successfully" });
       } else {
         return next(new ErrorHandler(404, `${req.__("check_login")}`));
       }
@@ -86,11 +93,11 @@ class UserServices {
         email: req.body.email,
       });
       if (!user) {
-        return next(new ErrorHandler(404, "You are not exist"));
+        return next(new ErrorHandler(404, "User not found"));
       }
       await sendEmail({
         verifyCode: verifyCode,
-        subject: "You reset code is ",
+        subject: "Your reset code is",
         email: user.email.toString(),
       });
       user.forgetPasswordCode = await bcrypt.hash(verifyCode, 10);
@@ -98,7 +105,7 @@ class UserServices {
       const token = Token.createTokenCode(user);
       res
         .status(200)
-        .json({ message: "The code send succefully", token: token });
+        .json({ message: "Reset code sent successfully", token: token });
     },
   );
   verifyCodeForgetPasswordCode = AsyncHandler(
@@ -147,6 +154,22 @@ class UserServices {
       } else {
         return next(new ErrorHandler(404, `${req.__("check_reset_code")}`));
       }
+    },
+  );
+  updatePassword = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { oldPassword, newPassword } = req.body;
+      const user = await userSchema.findById(req.CurrentUser._id);
+      if (!user) {
+        return next(new ErrorHandler(404, "User not found"));
+      }
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return next(new ErrorHandler(400, "Invalid old password"));
+      }
+      user.password = await bcrypt.hash(newPassword, 10);
+      await user.save();
+      res.status(200).json({ message: "Password updated successfully" });
     },
   );
   getMyTeam = AsyncHandler(

@@ -1,5 +1,6 @@
-import express from "express";
 import dotenv from "dotenv";
+dotenv.config();
+import express from "express";
 import Connection from "./config";
 import Routes from "./src";
 import cors from "cors";
@@ -10,11 +11,14 @@ import i18n from "i18n";
 import { Server } from "socket.io";
 import { initChat } from "./src/middlewares/chat";
 import mongoSanitize from 'express-mongo-sanitize';
+import { initScheduler } from "./src/utils/scheduler";
+import { initDailyScheduler } from "./src/utils/dailyScheduler";
 
 const app: express.Application = express();
 app.use(express.json({ limit: "1mb" }));
-dotenv.config();
+
 Connection();
+app.use(express.static('uploads'))
 app.use(helmet());
 app.use(cors(
   {
@@ -61,3 +65,5 @@ Routes(app);
 // (chat.ts importing from main.ts) and guarantees io is fully constructed.
 export { io };
 initChat(io);
+initScheduler();
+initDailyScheduler();

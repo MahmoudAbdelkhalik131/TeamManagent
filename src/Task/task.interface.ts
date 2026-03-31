@@ -1,5 +1,6 @@
 import { Document } from "mongoose";
 import Project from "../Project/project.interface";
+import { CloudinaryUploadResult } from "../middlewares/cloudinary";
 interface Task extends Document {
   readonly name: string;
   duration: string;
@@ -11,6 +12,13 @@ interface Task extends Document {
   readonly usernameAdmin: string;
   createdAt:Date,
   updatedAt:Date,
-  readonly status: "Pending"|"In-progress"|"Done";
+  status: "Pending" | "In-progress" | "Done" | "Reviewing" | "Accepted";
+  note?: string;
+  attachments?: CloudinaryUploadResult[];
+  adminFiles:boolean
+  memberFiles:boolean;
+  reviewCycles: number;
+  firstDoneAt?: Date;
+  lastOverdueNotificationAt?: Date;
 }
 export default Task;

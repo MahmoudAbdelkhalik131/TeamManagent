@@ -12,6 +12,7 @@ import {
   ProjectSummary,
   TaskSummary,
 } from "./Dashboard.interface";
+import dashboardSnapshotSchema from "./DashboardSnapshot.schema";
 
 class DashboardServices {
   // Helper to calculate member dashboard data
@@ -110,17 +111,24 @@ class DashboardServices {
     }));
 
     // Calculate weekly productivity for the member (tasks assigned to them)
+    // Week starts on Saturday and ends on Friday
     const daysArr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const weeklyProductivity: Record<string, TaskSummary[]> = {};
-    const nowDay = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(nowDay);
-      date.setDate(date.getDate() - i);
+    
+    // Days since last Saturday: Sat(6)->0, Sun(0)->1, ..., Fri(5)->6
+    const daysSinceSat = (now.getDay() + 1) % 7;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - daysSinceSat);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
       const dayName = daysArr[date.getDay()];
       const dayTasks = tasks.filter((t: any) => {
-        const completedDate = new Date(t.updatedAt || t.createdAt);
-        return t.status === 'Accepted' &&
-               completedDate.toDateString() === date.toDateString();
+        const acceptedDate = t.acceptedAt ? new Date(t.acceptedAt) : null;
+        return t.status === 'Accepted' && acceptedDate &&
+               acceptedDate.toDateString() === date.toDateString();
       }).map((t: any) => ({
         _id: t._id.toString(),
         name: t.name,
@@ -161,6 +169,7 @@ class DashboardServices {
 
   // Helper to calculate admin dashboard data
   async calculateAdminDashboard(username: string): Promise<AdminDashboard> {
+    const now = new Date();
     // Get user info
     const user = await userSchema.findOne({ username });
     if (!user) {
@@ -274,7 +283,6 @@ class DashboardServices {
       // Calculate Rating: 5 - (reworks * 0.3) - (lateDays * 0.3)
       let totalRating = 0;
       let ratedTasksCount = 0;
-      const now = new Date();
 
       for (const task of memberTasks) {
         // We only rate tasks that are either Accepted (final) or Overdue (current penalty)
@@ -317,17 +325,24 @@ class DashboardServices {
     });
 
     // Calculate weekly productivity for admin (all managed projects)
+    // Week starts on Saturday and ends on Friday
     const daysArr = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const weeklyProductivity: Record<string, TaskSummary[]> = {};
-    const nowDay = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(nowDay);
-      date.setDate(date.getDate() - i);
+    
+    // Days since last Saturday: Sat(6)->0, Sun(0)->1, ..., Fri(5)->6
+    const daysSinceSat = (now.getDay() + 1) % 7;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - daysSinceSat);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(startOfWeek);
+      date.setDate(startOfWeek.getDate() + i);
       const dayName = daysArr[date.getDay()];
       const dayTasks = allTasks.filter((t: any) => {
-        const completedDate = new Date(t.updatedAt || t.createdAt);
-        return t.status === 'Accepted' &&
-               completedDate.toDateString() === date.toDateString();
+        const acceptedDate = t.acceptedAt ? new Date(t.acceptedAt) : null;
+        return t.status === 'Accepted' && acceptedDate &&
+               acceptedDate.toDateString() === date.toDateString();
       }).map((t: any) => ({
         _id: t._id.toString(),
         name: t.name,
@@ -424,7 +439,8 @@ class DashboardServices {
         (t: any) => t.status === "In-progress",
       ).length;
       const reviewingTasks = tasks.filter((t: any) => t.status === "Reviewing").length;
-      const doneTasks = tasks.filter((t: any) => t.status === "Accepted").length;
+      const acceptedTasks = tasks.filter((t: any) => t.status === "Accepted").length;
+      const doneTasks = tasks.filter((t: any) => t.status === "Done").length;
 
       // Calculate completion rate
       const overallCompletionRate =
@@ -449,14 +465,48 @@ class DashboardServices {
         inProgressTasks,
         reviewingTasks,
         doneTasks,
-        acceptedTasks: doneTasks, // doneTasks variable already holds Accepted count
+        acceptedTasks: acceptedTasks,
         overallCompletionRate,
         overdueProjects,
         overdueTasks,
       };
 
       res.status(200).json({ data: stats });
-    },
+    }
+  );
+
+  // Get dashboard history handler
+  getDashboardHistory = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const username = req.CurrentUser.username.toString();
+        const role = req.CurrentUser.role;
+
+        // Fetch last 30 snapshots for this user
+        const snapshots = await dashboardSnapshotSchema
+          .find({ username, role })
+          .sort({ snapshotDate: 1 }) // Chronological order
+          .limit(30);
+
+        // Format for the graph
+        const historyData = snapshots.map(s => {
+          const stats = s.data.stats;
+          const dayName = new Date(s.snapshotDate).toLocaleDateString('en-US', { weekday: 'short' });
+          const dateStr = new Date(s.snapshotDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          
+          return {
+            name: `${dayName} (${dateStr})`,
+            tasks: role === 'admin' ? stats.completedTasks : stats.acceptedTasks,
+            completionRate: role === 'admin' ? stats.teamCompletionRate : stats.personalCompletionRate,
+            fullDate: s.snapshotDate
+          };
+        });
+
+        res.status(200).json({ data: historyData });
+      } catch (error: any) {
+        return next(new Error(error.message));
+      }
+    }
   );
 }
 

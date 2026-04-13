@@ -16,7 +16,6 @@ const DashboardSnapshotSchema: Schema = new Schema(
     snapshotDate: {
       type: Date,
       default: Date.now,
-      index: true,
     },
     data: {
       type: Schema.Types.Mixed,

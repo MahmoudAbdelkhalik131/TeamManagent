@@ -4,15 +4,15 @@ import dashboardServices from "../Dashboard/Dashboard.services";
 import dashboardSnapshotSchema from "../Dashboard/DashboardSnapshot.schema";
 
 export const initScheduler = () => {
-  // Weekly snapshot every Friday at 00:00 (Cron: 0 0 * * 5)
-  // 0 - minute
-  // 0 - hour
+  // Daily snapshot every day at 23:59 (Cron: 59 23 * * *)
+  // 59 - minute
+  // 23 - hour
   // * - day of month
   // * - month
-  // 5 - day of week (Friday)
-  cron.schedule("0 0 * * 5", async () => {
+  // * - day of week
+  cron.schedule("59 23 * * *", async () => {
     console.log("-----------------------------------------");
-    console.log(`[${new Date().toISOString()}] Starting weekly dashboard snapshot job...`);
+    console.log(`[${new Date().toISOString()}] Starting daily dashboard snapshot job...`);
     
     try {
       const users = await userSchema.find({});
@@ -42,7 +42,7 @@ export const initScheduler = () => {
         }
       }
       
-      console.log(`Successfully created snapshots for ${count}/${users.length} users.`);
+      console.log(`Successfully created daily snapshots for ${count}/${users.length} users.`);
 
       // Cleanup old snapshots (> 90 days / 3 months)
       const ninetyDaysAgo = new Date();
@@ -53,7 +53,7 @@ export const initScheduler = () => {
       });
       
       console.log(`Cleaned up ${deleteResult.deletedCount} snapshots older than 90 days.`);
-      console.log("Weekly snapshot job completed.");
+      console.log("Daily snapshot job completed.");
       console.log("-----------------------------------------");
       
     } catch (error: any) {
@@ -61,5 +61,5 @@ export const initScheduler = () => {
     }
   });
   
-  console.log("Scheduler initialized: Weekly dashboard snapshots set for every Friday at 00:00.");
+  console.log("Scheduler initialized: Daily dashboard snapshots set for every day at 23:59.");
 };

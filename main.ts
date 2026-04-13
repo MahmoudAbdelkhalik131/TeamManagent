@@ -20,12 +20,22 @@ app.use(express.json({ limit: "1mb" }));
 Connection();
 app.use(express.static('uploads'))
 app.use(helmet());
-app.use(cors(
-  {
-    origin:["http://localhost:8080"],
-    credentials:true
-  }
-));
+const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ["http://localhost:8080"];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true
+}));
+
+const PORT = process.env.PORT || 4000;
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -42,8 +52,8 @@ app.use((req, res, next) => {
   if (req.params) req.params = mongoSanitize.sanitize(req.params);
   next();
 });
-server.listen(process.env.PORT, () => {
-  console.log(`server started on port ${process.env.PORT} with cors enabled`);
+server.listen(PORT, () => {
+  console.log(`server started on port ${PORT} with cors enabled`);
 });
 process.on("unhandledRejection", (err: Error) => {
   console.error(`unhandledRejection ${err.name} | ${err.message}`);

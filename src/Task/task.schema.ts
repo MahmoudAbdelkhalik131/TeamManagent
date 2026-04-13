@@ -41,6 +41,7 @@ const TaskSchema = new mongoose.Schema<Task>(
   memberFiles:{type:Boolean,default:false},
   reviewCycles: { type: Number, default: 0 },
   firstDoneAt: { type: Date },
+  acceptedAt: { type: Date },
   lastOverdueNotificationAt: { type: Date }
   },
   { timestamps: true }

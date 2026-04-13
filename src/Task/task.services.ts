@@ -372,14 +372,25 @@ const nextStatus: Task["status"] = isStatusUpdate
   ? (requestedStatus as Task["status"])
   : task.status;
 
-// Track review cycles
-if (previousStatus === "Reviewing" && nextStatus === "In-progress") {
+// Track review cycles (penalize if moved back from Reviewing/Accepted to lower states)
+if ((previousStatus === "Reviewing" || previousStatus === "Accepted") && 
+    ["Done", "In-progress", "Pending"].includes(nextStatus)) {
   task.reviewCycles = (task.reviewCycles || 0) + 1;
 }
 
 // Track first time marked as Done
 if (nextStatus === "Done" && !task.firstDoneAt) {
   task.firstDoneAt = new Date();
+}
+
+// Track when task is Accepted
+if (nextStatus === "Accepted") {
+  if (!task.acceptedAt) {
+    task.acceptedAt = new Date();
+  }
+} else {
+  // Clear acceptedAt if moved out of Accepted status
+  task.acceptedAt = undefined;
 }
 await task.save();
 

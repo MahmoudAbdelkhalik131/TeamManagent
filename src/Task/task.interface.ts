@@ -19,6 +19,7 @@ interface Task extends Document {
   memberFiles:boolean;
   reviewCycles: number;
   firstDoneAt?: Date;
+  acceptedAt?: Date;
   lastOverdueNotificationAt?: Date;
 }
 export default Task;

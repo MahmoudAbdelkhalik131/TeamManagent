@@ -25,4 +25,11 @@ dashboardRouter.get(
   dashboardServices.getOverallStats,
 );
 
+// Get dashboard history - accessible to all authenticated users
+dashboardRouter.get(
+  "/history",
+  auth.verifyToken,
+  dashboardServices.getDashboardHistory,
+);
+
 export default dashboardRouter;

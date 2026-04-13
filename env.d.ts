@@ -11,5 +11,6 @@ declare namespace NodeJS{
         CLOUDINARY_API_SECRET:string;
         Mongo:string;
         CORS_ORIGIN: string;
+        RESEND_API_KEY:string
     }
 }

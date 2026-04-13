@@ -13,6 +13,9 @@ const sendEmail = async (options: options): Promise<void> => {
       user: process.env.EMAIL_USERNAME,
       pass: process.env.EMAIL_PASSWORD,
     },
+    tls: {
+      rejectUnauthorized: false // Helps if there are local cert issues on Railway
+    }
   });
 
   // const image = `<img src="cid:image@nodemailer.com" alt="" width="350px" height="350px" style="display: block;margin: auto;"/>`

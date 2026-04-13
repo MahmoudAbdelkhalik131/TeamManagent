@@ -9,11 +9,11 @@ import sendEmail from "../utils/sendEmail";
 
 
 class UserServices {
-  gettAllUser = async (req: Request, res: Response, next: NextFunction) => {
+  gettAllUser = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const users: Users[] | null = await userSchema.find().select("-password -verifyCode -forgetPasswordCode");
     res.status(200).json({ data: users });
-  };
-  login = async (req: Request, res: Response, next: NextFunction) => {
+  });
+  login = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const user: Users | null = await userSchema.findOne({
       email: req.body.email,
     });
@@ -30,8 +30,8 @@ class UserServices {
     const token = Token.createToken(user);
     const { password, verifyCode, forgetPasswordCode, ...safeUser } = user.toObject();
     res.status(200).json({ data: safeUser, token: token });
-  };
-  register = async (req: Request, res: Response, next: NextFunction) => {
+  });
+  register = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const verifyCode =  Math.floor(100000 + Math.random() * 900000).toString();
      const user = {
       username: req.body.username,
@@ -40,17 +40,26 @@ class UserServices {
       role: req.body.role || "member",
       verifyCode: verifyCode,
     };
-    await sendEmail({
-      verifyCode: verifyCode,
-      subject: "You verification code is ",
-      email: user.email.toString(),
-    }); 
+    
+    try {
+      await sendEmail({
+        verifyCode: verifyCode,
+        subject: "You verification code is ",
+        email: user.email.toString(),
+      }); 
+    } catch (emailError) {
+      console.error("Email sending failed:", emailError);
+      // We still want to return a token so the user can verify if they know why it failed
+      // Or we can return a 500 error if email is mandatory.
+      return next(new ErrorHandler(500, "Failed to send verification email. Please check your SMTP settings."));
+    }
+
     const token = Token.createVerificationToken(user);
     res.status(200).json({
       token: token,
       message: "verification code sent successfully Please check your email",
     });
-  };
+  });
   verifyCode = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
       if (req.headers.authorization) {

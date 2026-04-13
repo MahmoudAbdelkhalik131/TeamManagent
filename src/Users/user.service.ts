@@ -47,11 +47,9 @@ class UserServices {
         subject: "You verification code is ",
         email: user.email.toString(),
       }); 
-    } catch (emailError) {
+    } catch (emailError: any) {
       console.error("Email sending failed:", emailError);
-      // We still want to return a token so the user can verify if they know why it failed
-      // Or we can return a 500 error if email is mandatory.
-      return next(new ErrorHandler(500, "Failed to send verification email. Please check your SMTP settings."));
+      return next(new ErrorHandler(500, `Email failed: ${emailError.message || "Check SMTP settings"}`));
     }
 
     const token = Token.createVerificationToken(user);

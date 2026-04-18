@@ -8,7 +8,7 @@ import { uploadMultiple } from "../middlewares/uploadMiddleware";
 export const projectRouter: Router = Router({});
 projectRouter.use("/:projectId/task", taskRouter);
 projectRouter.post(
-  "/create",
+  "/",
   auth.allowedRoles(["admin"]),
 uploadMultiple,
   projectValidation.create,

@@ -280,31 +280,31 @@ class DashboardServices {
           ? Math.round((memberAcceptedTasks / memberTasks.length) * 100)
           : 0;
 
-      // Calculate Rating: 5 - (reworks * 0.3) - (lateDays * 0.3)
+      // Calculate Rating: 5 - (reworks * 0.1) - (lateDays * 0.3)
       let totalRating = 0;
       let ratedTasksCount = 0;
 
       for (const task of memberTasks) {
-        // We only rate tasks that are either Accepted (final) or Overdue (current penalty)
-        const isAccepted = task.status === "Accepted";
-        const isOverdue = new Date(task.endDate) < now && task.status !== "Accepted" && task.status !== "Done";
+        // We rate tasks that are either Submitted (Accepted, Done, Reviewing), Overdue, or have Reworks
+        const isSubmitted = ["Accepted", "Done", "Reviewing"].includes(task.status);
+        const isOverdue = !isSubmitted && new Date(task.endDate) < now;
+        const hasReworks = (task.reviewCycles || 0) > 0;
         
-        if (isAccepted || isOverdue) {
+        if (isSubmitted || isOverdue || hasReworks) {
           let taskRating = 5.0;
           
-          // Penalty for reworks
-          taskRating -= (task.reviewCycles || 0) * 0.3;
+          // Penalty for reworks (0.1 per cycle as requested)
+          taskRating -= (task.reviewCycles || 0) * 0.1;
 
           // Penalty for lateness
-          let lateDate = isAccepted ? task.firstDoneAt : now;
+          // For submitted tasks, use firstDoneAt. For overdue tasks, use current time (now).
+          // Fallback to acceptedAt if firstDoneAt is missing for some reason.
+          let lateDate = isSubmitted ? (task.firstDoneAt || task.acceptedAt) : (isOverdue ? now : null);
+          
           if (lateDate && new Date(lateDate) > new Date(task.endDate)) {
             const diffTime = Math.abs(new Date(lateDate).getTime() - new Date(task.endDate).getTime());
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             taskRating -= diffDays * 0.3;
-          } else if (!lateDate && isOverdue) {
-             const diffTime = Math.abs(new Date().getTime() - new Date(task.endDate).getTime());
-             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-             taskRating -= diffDays * 0.3;
           }
 
           totalRating += Math.max(0, taskRating);

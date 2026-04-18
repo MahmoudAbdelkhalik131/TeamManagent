@@ -378,8 +378,8 @@ if ((previousStatus === "Reviewing" || previousStatus === "Accepted") &&
   task.reviewCycles = (task.reviewCycles || 0) + 1;
 }
 
-// Track first time marked as Done
-if (nextStatus === "Done" && !task.firstDoneAt) {
+// Track first time marked as Done, Reviewing, or Accepted
+if (["Done", "Reviewing", "Accepted"].includes(nextStatus as string) && !task.firstDoneAt) {
   task.firstDoneAt = new Date();
 }
 

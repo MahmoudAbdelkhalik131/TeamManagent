@@ -36,6 +36,24 @@ class ProjectValidation {
         }
         return true;
       }),
+       body("startDate")
+      .optional()
+      .custom((val,{req}) => {
+        if (!val) return true;
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error(
+            "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
+          );
+        }
+        if (!isFutureDate(date)) {
+          throw new Error("End date must be in the future");
+        }
+        if(date>=req.body.endDate){
+          throw new Error("start Date must be less than end date")
+        }
+        return true;
+      }),
     body("duration").custom(async (val, { req }) => {
       if (val) {
         throw new Error(
@@ -146,6 +164,24 @@ class ProjectValidation {
           throw new Error(
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
+        }
+        return true;
+      }),
+       body("startDate")
+      .notEmpty()
+      .withMessage("this field cann't be Empty")
+      .custom((val,{req}) => {
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error(
+            "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
+          );
+        }
+        if(!isFutureDate(date)){
+          throw new Error("Date Must be in the Future")
+        }
+         if(date>=req.body.endDate){
+          throw new Error("start Date must be less than end date")
         }
         return true;
       }),

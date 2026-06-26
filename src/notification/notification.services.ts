@@ -81,7 +81,12 @@ export const markNotificationAsRead = async (notificationId: string, username: s
     { new: true }
   );
 };
-
+export const markAllNotificationAsRead = async ( username: string) => {
+  return await NotificationSchema.updateMany(
+    { recipient: username ,isRead: false},
+    { $set: { isRead: true } },
+  );
+};
 export const getUnreadNotificationCount = async (username: string) => {
   return await NotificationSchema.countDocuments({
     recipient: username,

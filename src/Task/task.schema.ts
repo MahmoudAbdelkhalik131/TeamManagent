@@ -16,6 +16,8 @@ const TaskSchema = new mongoose.Schema<Task>(
         return val;
       }
     },
+    task:{type:mongoose.Schema.Types.ObjectId,ref:"task"},
+    startDate:{type:Date,required:true},
     color: { type: String },
     description: { type: String },
     project: { type: mongoose.Schema.Types.ObjectId, ref: "project" },
@@ -42,8 +44,15 @@ const TaskSchema = new mongoose.Schema<Task>(
   reviewCycles: { type: Number, default: 0 },
   firstDoneAt: { type: Date },
   acceptedAt: { type: Date },
-  lastOverdueNotificationAt: { type: Date }
+  lastOverdueNotificationAt: { type: Date },
+  aiReview: { type: String },
+  aiVerdict: { 
+    type: String, 
+    enum: ["ACCEPT", "REJECT", "NONE"], 
+    default: "NONE" 
+  }
   },
+
   { timestamps: true }
 );
 TaskSchema.pre<Task>(/^find/,  function (next) {

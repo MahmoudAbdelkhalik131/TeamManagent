@@ -13,6 +13,8 @@ import {
   TaskSummary,
 } from "./Dashboard.interface";
 import dashboardSnapshotSchema from "./DashboardSnapshot.schema";
+import geminiService from "../utils/gemini.service";
+
 
 class DashboardServices {
   // Helper to calculate member dashboard data
@@ -164,7 +166,9 @@ class DashboardServices {
       tasks: taskSummaries,
       upcomingTasks: upcomingTaskSummaries,
       weeklyProductivity,
+      teamPerformance: [], // Added to satisfy the MemberDashboard interface
     };
+
   }
 
   // Helper to calculate admin dashboard data
@@ -508,7 +512,32 @@ class DashboardServices {
       }
     }
   );
+
+  // Get AI Dashboard insights handler
+  getAIInsights = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const username = req.CurrentUser.username.toString();
+        const role = req.CurrentUser.role;
+        
+        let data;
+        if (role === 'admin') {
+          data = await this.calculateAdminDashboard(username);
+        } else {
+          data = await this.calculateMemberDashboard(username);
+        }
+
+        const insights = await geminiService.analyzeDashboard(data.stats, data.teamPerformance);
+
+        
+        res.status(200).json({ data: insights });
+      } catch (error: any) {
+        return next(new Error(error.message));
+      }
+    }
+  );
 }
 
 const dashboardServices = new DashboardServices();
 export default dashboardServices;
+

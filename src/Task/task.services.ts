@@ -9,7 +9,11 @@ import { getDaysDifference, isFutureDate } from "../utils/dateHandler";
 import { ErrorHandler } from "../middlewares/errorHandler";
 import { createNotification } from "../notification/notification.services";
 import ActivityService from "../activity/activity.services";
-import { cloudinary, CloudinaryUploadResult, uploadToCloudinary } from "../middlewares/cloudinary";
+import {
+  cloudinary,
+  CloudinaryUploadResult,
+  uploadToCloudinary,
+} from "../middlewares/cloudinary";
 class TaskServices {
   setId(req: Request, res: Response, next: NextFunction) {
     if (req.params.projectId) {
@@ -21,7 +25,9 @@ class TaskServices {
   }
   getAll = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const tasks: Task[] = await taskSchema.find({ project: req.projectId }).sort({ createdAt: -1 });
+      const tasks: Task[] = await taskSchema
+        .find({ project: req.projectId })
+        .sort({ createdAt: -1 });
       const updatedTasks = tasks.map((t) => {
         const task = t.toObject() as any;
         if (isFutureDate(task.endDate)) {
@@ -58,7 +64,7 @@ class TaskServices {
       const bulkOps = tasks.map((t) => {
         const duration = isFutureDate(t.endDate)
           ? (getDaysDifference(
-            new Date(Date.now()),
+            new Date(t.startDate),
             new Date(t.endDate),
           )?.toString() || "0") + " Days"
           : "0 days";
@@ -97,7 +103,7 @@ class TaskServices {
         if (isFutureDate(task.endDate)) {
           task.duration =
             getDaysDifference(
-              new Date(Date.now()),
+              new Date(task.startDate),
               new Date(task.endDate),
             )?.toString() + " Days" || "0 Days";
         } else {
@@ -134,31 +140,68 @@ class TaskServices {
   );
   create = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const task: Task = await taskSchema.create({
-        project: req.projectId,
-        usernameMember: req.body.username,
-        usernameAdmin: req.CurrentUser.username,
-        name: req.body.name,
-        status: req.body.status || "Pending",
-        endDate: req.body.endDate,
-        duration: getDaysDifference(new Date(Date.now()), new Date(req.body.endDate))?.toString() + " Days",
-        color: req.body.color || "#000000", // default color if not provided
-        description: req.body.description,
-
-      });
+      let task: Task = {} as Task;
+      if (req.body.taskId) {
+        const parentTask = await taskSchema.findById(req.body.taskId);
+        if (!parentTask) {
+          return next(new ErrorHandler(404, "Parent task not found"));
+        }
+        // When task has a parent, its startDate is the parent's endDate
+        const childStartDate = parentTask.endDate;
+        const tas: Task = await taskSchema.create({
+          project: req.projectId,
+          usernameMember: req.body.username,
+          usernameAdmin: req.CurrentUser.username,
+          name: req.body.name,
+          status: req.body.status || "Pending",
+          endDate: req.body.endDate,
+          duration:
+            getDaysDifference(
+              new Date(childStartDate),
+              new Date(req.body.endDate),
+            )?.toString() + " Days",
+          color: req.body.color || "#000000", // default color if not provided
+          description: req.body.description,
+          startDate: childStartDate,
+          task: req.body.taskId,
+        });
+        task = tas;
+      } else {
+        const tas: Task = await taskSchema.create({
+          project: req.projectId,
+          usernameMember: req.body.username,
+          usernameAdmin: req.CurrentUser.username,
+          name: req.body.name,
+          status: req.body.status || "Pending",
+          endDate: req.body.endDate,
+          duration:
+            getDaysDifference(
+              new Date(req.body.startDate),
+              new Date(req.body.endDate),
+            )?.toString() + " Days",
+          color: req.body.color || "#000000", // default color if not provided
+          description: req.body.description,
+          startDate: req.body.startDate,
+          task: req.body.taskId,
+        });
+        task = tas;
+      }
       if (req.files) {
-        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
+        const files = Array.isArray(req.files)
+          ? req.files
+          : Object.values(req.files).flat();
+        const uploadPromises = files.map((file: Express.Multer.File) =>
+          uploadToCloudinary(file),
+        );
         const results = await Promise.all(uploadPromises);
         task.attachments = results.map((r: CloudinaryUploadResult) => r);
-        await task.save()
+        await task.save();
       }
-
       const project: Project | null = await projectSchema.findById({
-        _id: task.project._id
+        _id: task.project._id,
       });
       if (!project) {
-        return next(new ErrorHandler(404, "project not found"))
+        return next(new ErrorHandler(404, "project not found"));
       }
       if (new Date(project?.endDate!) <= new Date(task.endDate)) {
         return next(
@@ -185,14 +228,14 @@ class TaskServices {
         await project.save();
       }
       project.totalTasks++;
-      await project?.save()
+      await project?.save();
 
       // Notify the assigned member
       await createNotification(
         task.usernameMember,
         "Task Assigned",
         `You have been assigned a new task: ${task.name} in project ${project!.name}`,
-        task.project._id.toString()
+        task.project._id.toString(),
       );
 
       // Log Activity
@@ -211,20 +254,24 @@ class TaskServices {
   );
   delete = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
-      const task: Task | null = await taskSchema.findById(req.params.id.toString());
+      const task: Task | null = await taskSchema.findById(
+        req.params.id.toString(),
+      );
       if (!task) {
         return next(new Error("No Task "));
       }
       const project: Project | null = await projectSchema.findOne({
-        _id: task.project._id
+        _id: task.project._id,
       });
       if (!project) {
-        return next(new ErrorHandler(404, "project not found"))
+        return next(new ErrorHandler(404, "project not found"));
       }
       const tasks: Task[] | null = await taskSchema.find({
         project: task.project._id,
       });
-      const Done: number = tasks.filter((t) => t.status === "Accepted").length - (task.status === "Accepted" ? 1 : 0);
+      const Done: number =
+        tasks.filter((t) => t.status === "Accepted").length -
+        (task.status === "Accepted" ? 1 : 0);
       const percent: number =
         tasks.length > 0 ? Math.round((Done / tasks.length) * 100) : 0;
       if (project) {
@@ -236,11 +283,15 @@ class TaskServices {
         }
         await project.save();
       }
-      if (task.usernameAdmin.toString() !== req.CurrentUser.username.toString()) {
-        return next(new ErrorHandler(401, "You aren't authorized to delete this task"));
+      if (
+        task.usernameAdmin.toString() !== req.CurrentUser.username.toString()
+      ) {
+        return next(
+          new ErrorHandler(401, "You aren't authorized to delete this task"),
+        );
       }
       project!.totalTasks--;
-      await project?.save()
+      await project?.save();
       await taskSchema.findByIdAndDelete(req.params.id);
 
       // Log Activity
@@ -279,22 +330,32 @@ class TaskServices {
         return next(new Error("Task not found"));
       }
       if (req.files) {
-        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
+        const files = Array.isArray(req.files)
+          ? req.files
+          : Object.values(req.files).flat();
+        const uploadPromises = files.map((file: Express.Multer.File) =>
+          uploadToCloudinary(file),
+        );
         const results = await Promise.all(uploadPromises);
         if (!updatedTask!.attachments) updatedTask!.attachments = [];
-        updatedTask!.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
+        updatedTask!.attachments.push(
+          ...results.map((r: CloudinaryUploadResult) => r),
+        );
         await updatedTask!.save();
       }
-      updatedTask.duration! = getDaysDifference(new Date(Date.now()), new Date(updatedTask?.endDate!))?.toString() + " Days" || "0 Days"
-      await updatedTask?.save({ validateModifiedOnly: true })
+      updatedTask.duration! =
+        getDaysDifference(
+          new Date(updatedTask.startDate),
+          new Date(updatedTask?.endDate!),
+        )?.toString() + " Days" || "0 Days";
+      await updatedTask?.save({ validateModifiedOnly: true });
 
       // Notify the assignee about task update
       await createNotification(
         updatedTask.usernameMember,
         "Task Updated",
         `Task details changed: ${updatedTask.name}`,
-        (updatedTask.project as unknown) as string
+        updatedTask.project as unknown as string,
       );
 
       // Log Activity
@@ -307,7 +368,16 @@ class TaskServices {
         targetName: updatedTask.name,
         details: { projectId: updatedTask.project.toString() },
       });
+      if (req.body.taskId) {
 
+        const pTask = await taskSchema.findById(req.body.taskId)
+        if (!pTask) {
+          return next(new Error("Parent Task not found"));
+        }
+        updatedTask.task = req.body.taskId;
+        updatedTask.startDate = new Date(pTask?.endDate);
+        await updatedTask.save({ validateModifiedOnly: true });
+      }
       res.status(200).json({ data: updatedTask });
     },
   );
@@ -317,198 +387,245 @@ class TaskServices {
       if (!task) {
         return next(new Error("No Task "));
       }
+      if (task.task) {
+        const parentTask = await taskSchema.findById(task.task)
+        if (task.status ==="In-progress") {
+          if (parentTask?.status !== "Accepted") {
+            return next(new Error("Parent Task is not Accepted"));
+          }
+        }
+      }
       const requestedStatus: string = req.body.status;
       const isStatusUpdate =
         typeof requestedStatus === "string" && requestedStatus.trim() !== "";
-      
-      if (req.body.status==="Done"&&req.CurrentUser.role==="member"&&task.memberFiles===false)
-       {
-  return next(new ErrorHandler(400, "You must upload files when marking task as done"));
-}
 
-// Process file uploads regardless of status
-if (req.files && (Array.isArray(req.files) ? req.files.length > 0 : Object.keys(req.files).length > 0)) {
-  const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
-  const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
-  const results = await Promise.all(uploadPromises);
-  if (!task.attachments) task.attachments = [];
-  task.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
-  if(req.CurrentUser.role==="member"){
-    task.memberFiles=true;
-  }
-  if(req.CurrentUser.role==="admin"){
-    task.adminFiles=true;
-  }
-  await task.save();
-}
-if (
-  isStatusUpdate &&
-  requestedStatus !== "Pending" &&
-  requestedStatus !== "In-progress" &&
-  requestedStatus !== "Done" &&
-  requestedStatus !== "Reviewing" &&
-  requestedStatus !== "Accepted"
-) {
-  return next(new Error("Invalid status value"));
-}
+      if (
+        req.body.status === "Done" &&
+        req.CurrentUser.role === "member" &&
+        task.memberFiles === false
+      ) {
+        return next(
+          new ErrorHandler(
+            400,
+            "You must upload files when marking task as done",
+          ),
+        );
+      }
 
-if (
-  isStatusUpdate &&
-  req.CurrentUser.role === "member" &&
-  (requestedStatus === "Reviewing" || requestedStatus === "Accepted")
-) {
-  return next(
-    new ErrorHandler(
-      403,
-      "Members are not allowed to move tasks to Reviewing or Accepted",
-    ),
-  );
-}
-if ((task.status === "Accepted" || task.status === "Reviewing") && req.CurrentUser.role === "member" && req.body.status) {
-  return next(new ErrorHandler(403, "You can't move task from Reviewing or Accepted"))
-}
-const previousStatus = task.status;
-const nextStatus: Task["status"] = isStatusUpdate
-  ? (requestedStatus as Task["status"])
-  : task.status;
+      // Process file uploads regardless of status
+      if (
+        req.files &&
+        (Array.isArray(req.files)
+          ? req.files.length > 0
+          : Object.keys(req.files).length > 0)
+      ) {
+        const files = Array.isArray(req.files)
+          ? req.files
+          : Object.values(req.files).flat();
+        const uploadPromises = files.map((file: Express.Multer.File) =>
+          uploadToCloudinary(file),
+        );
+        const results = await Promise.all(uploadPromises);
+        if (!task.attachments) task.attachments = [];
+        task.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
+        if (req.CurrentUser.role === "member") {
+          task.memberFiles = true;
+        }
+        if (req.CurrentUser.role === "admin") {
+          task.adminFiles = true;
+        }
+        await task.save();
+      }
+      if (
+        isStatusUpdate &&
+        requestedStatus !== "Pending" &&
+        requestedStatus !== "In-progress" &&
+        requestedStatus !== "Done" &&
+        requestedStatus !== "Reviewing" &&
+        requestedStatus !== "Accepted"
+      ) {
+        return next(new Error("Invalid status value"));
+      }
 
-// Track review cycles (penalize if moved back from Reviewing/Accepted to lower states)
-if ((previousStatus === "Reviewing" || previousStatus === "Accepted") && 
-    ["Done", "In-progress", "Pending"].includes(nextStatus)) {
-  task.reviewCycles = (task.reviewCycles || 0) + 1;
-}
+      if (
+        isStatusUpdate &&
+        req.CurrentUser.role === "member" &&
+        (requestedStatus === "Reviewing" || requestedStatus === "Accepted")
+      ) {
+        return next(
+          new ErrorHandler(
+            403,
+            "Members are not allowed to move tasks to Reviewing or Accepted",
+          ),
+        );
+      }
+      if (
+        (task.status === "Accepted" || task.status === "Reviewing") &&
+        req.CurrentUser.role === "member" &&
+        req.body.status
+      ) {
+        return next(
+          new ErrorHandler(
+            403,
+            "You can't move task from Reviewing or Accepted",
+          ),
+        );
+      }
+      const previousStatus = task.status;
+      const nextStatus: Task["status"] = isStatusUpdate
+        ? (requestedStatus as Task["status"])
+        : task.status;
 
-// Track first time marked as Done, Reviewing, or Accepted
-if (["Done", "Reviewing", "Accepted"].includes(nextStatus as string) && !task.firstDoneAt) {
-  task.firstDoneAt = new Date();
-}
+      // Track review cycles (penalize if moved back from Reviewing/Accepted to lower states)
+      if (
+        (previousStatus === "Reviewing" || previousStatus === "Accepted") &&
+        ["Done", "In-progress", "Pending"].includes(nextStatus)
+      ) {
+        task.reviewCycles = (task.reviewCycles || 0) + 1;
+      }
 
-// Track when task is Accepted
-if (nextStatus === "Accepted") {
-  if (!task.acceptedAt) {
-    task.acceptedAt = new Date();
-  }
-} else {
-  // Clear acceptedAt if moved out of Accepted status
-  task.acceptedAt = undefined;
-}
-await task.save();
+      // Track first time marked as Done, Reviewing, or Accepted
+      if (
+        ["Done", "Reviewing", "Accepted"].includes(nextStatus as string) &&
+        !task.firstDoneAt
+      ) {
+        task.firstDoneAt = new Date();
+      }
 
-if (isStatusUpdate && task.status === nextStatus) {
-  res.status(200).json({
-    message: `Good! The task is already ${nextStatus}`,
-    data: task,
-  });
-  return;
-}
-const project: Project | null = await projectSchema.findById({
-  _id: task.project._id.toString(),
-});
-const tasks: Task[] | null = await taskSchema.find({
-  project: task.project._id.toString(),
-});
-const AcceptedCount: number = tasks.filter((t) => {
-  if (t._id.toString() === task._id.toString()) {
-    return nextStatus === "Accepted";
-  }
-  return t.status === "Accepted";
-}).length;
-const percent: number =
-  tasks.length > 0 ? Math.round((AcceptedCount / tasks.length) * 100) : 0;
-if (project) {
-  project.percent = percent;
-  if (percent >= 100) {
-    project.status = "Done";
-  } else {
-    project.status = "Active";
-  }
-  await project.save();
-}
-let updatedTask: Task | null = task;
+      // Track when task is Accepted
+      if (nextStatus === "Accepted") {
+        if (!task.acceptedAt) {
+          task.acceptedAt = new Date();
+        }
+      } else {
+        // Clear acceptedAt if moved out of Accepted status
+        task.acceptedAt = undefined;
+      }
+      await task.save();
 
-// Only update status/note when status is provided
-if (isStatusUpdate) {
-  const noteToSave =
-    nextStatus === "In-progress" &&
-      (previousStatus === "Reviewing" || previousStatus === "Accepted")
-      ? typeof req.body.note === "string"
-        ? req.body.note
-        : task.note || ""
-      : "";
+      if (isStatusUpdate && task.status === nextStatus) {
+        res.status(200).json({
+          message: `Good! The task is already ${nextStatus}`,
+          data: task,
+        });
+        return;
+      }
+      const project: Project | null = await projectSchema.findById({
+        _id: task.project._id.toString(),
+      });
+      const tasks: Task[] | null = await taskSchema.find({
+        project: task.project._id.toString(),
+      });
+      const AcceptedCount: number = tasks.filter((t) => {
+        if (t._id.toString() === task._id.toString()) {
+          return nextStatus === "Accepted";
+        }
+        return t.status === "Accepted";
+      }).length;
+      const percent: number =
+        tasks.length > 0 ? Math.round((AcceptedCount / tasks.length) * 100) : 0;
+      if (project) {
+        project.percent = percent;
+        if (percent >= 100) {
+          project.status = "Done";
+        } else {
+          project.status = "Active";
+        }
+        await project.save();
+      }
+      let updatedTask: Task | null = task;
 
-  updatedTask = await taskSchema.findByIdAndUpdate(
-    req.params.id,
-    { status: nextStatus, note: noteToSave },
-    { new: true },
-  );
-}
+      // Only update status/note when status is provided
+      if (isStatusUpdate) {
+        const noteToSave =
+          nextStatus === "In-progress" &&
+            (previousStatus === "Reviewing" || previousStatus === "Accepted")
+            ? typeof req.body.note === "string"
+              ? req.body.note
+              : task.note || ""
+            : "";
 
-if (updatedTask) {
-  if (isStatusUpdate) {
-    const message = `Task '${updatedTask.name}' status changed to '${updatedTask.status}'`;
-    if (updatedTask.status === "Reviewing") {
-      await createNotification(
-        updatedTask.usernameMember,
-        "Task Under Review",
-        `Your task '${updatedTask.name}' is being reviewed at the moment`,
-        (updatedTask.project as unknown) as string,
-      );
-    }
+        updatedTask = await taskSchema.findByIdAndUpdate(
+          req.params.id,
+          { status: nextStatus, note: noteToSave },
+          { new: true },
+        );
+      }
 
-    await createNotification(
-      updatedTask.usernameAdmin,
-      "Task Status Updated",
-      message,
-      (updatedTask.project as unknown) as string,
-    );
-    if (updatedTask.usernameMember !== updatedTask.usernameAdmin) {
-      await createNotification(
-        updatedTask.usernameMember,
-        "Task Status Updated",
-        message,
-        (updatedTask.project as unknown) as string,
-      );
-    }
+      if (updatedTask) {
+        if (isStatusUpdate) {
+          const message = `Task '${updatedTask.name}' status changed to '${updatedTask.status}'`;
+          if (updatedTask.status === "Reviewing") {
+            await createNotification(
+              updatedTask.usernameMember,
+              "Task Under Review",
+              `Your task '${updatedTask.name}' is being reviewed at the moment`,
+              updatedTask.project as unknown as string,
+            );
+          }
 
-    await ActivityService.log({
-      user: req.CurrentUser._id,
-      username: req.CurrentUser.username,
-      action: "Changed Status",
-      targetType: "Task",
-      targetId: updatedTask._id.toString(),
-      targetName: updatedTask.name,
-      details: {
-        status: updatedTask.status,
-        projectId: updatedTask.project.toString(),
-      },
-    });
-  }
-}
+          await createNotification(
+            updatedTask.usernameAdmin,
+            "Task Status Updated",
+            message,
+            updatedTask.project as unknown as string,
+          );
+          if (updatedTask.usernameMember !== updatedTask.usernameAdmin) {
+            await createNotification(
+              updatedTask.usernameMember,
+              "Task Status Updated",
+              message,
+              updatedTask.project as unknown as string,
+            );
+          }
 
-res.status(200).json({ data: updatedTask, percent: percent });
+          await ActivityService.log({
+            user: req.CurrentUser._id,
+            username: req.CurrentUser.username,
+            action: "Changed Status",
+            targetType: "Task",
+            targetId: updatedTask._id.toString(),
+            targetName: updatedTask.name,
+            details: {
+              status: updatedTask.status,
+              projectId: updatedTask.project.toString(),
+            },
+          });
+        }
+      }
+
+      res.status(200).json({ data: updatedTask, percent: percent });
     },
   );
-getOne = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const task: Task | null = await taskSchema.findById(req.params.id);
-  if (!task) {
-    return next(new Error("No Task "));
-  }
-  res.status(200).json({ data: task });
-})
-deleteAttachment = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  const task: Task | null = await taskSchema.findById(req.params.id);
-  if (!task) {
-    return next(new Error("No Task "));
-  }
-  const attachment = task.attachments?.find((a) => a.public_id === req.params.public_id);
-  if (!attachment) {
-    return next(new Error("Attachment not found"));
-  }
-  await cloudinary.uploader.destroy(attachment.public_id)
-  task.attachments = task.attachments?.filter((a) => a.public_id !== req.params.public_id);
-  await task.save();
-  res.status(200).json({ data: task });
-})
+  getOne = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const task: Task | null = await taskSchema.findById(req.params.id);
+      if (!task) {
+        return next(new Error("No Task "));
+      }
+      res.status(200).json({ data: task });
+    },
+  );
+  deleteAttachment = AsyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const task: Task | null = await taskSchema.findById(req.params.id);
+      if (!task) {
+        return next(new Error("No Task "));
+      }
+      const attachment = task.attachments?.find(
+        (a) => a.public_id === req.params.public_id,
+      );
+      if (!attachment) {
+        return next(new Error("Attachment not found"));
+      }
+      await cloudinary.uploader.destroy(attachment.public_id);
+      task.attachments = task.attachments?.filter(
+        (a) => a.public_id !== req.params.public_id,
+      );
+      await task.save();
+      res.status(200).json({ data: task });
+    },
+  );
 }
 
 const taskServices = new TaskServices();

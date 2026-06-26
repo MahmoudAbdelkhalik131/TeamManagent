@@ -74,3 +74,19 @@ export const getUnreadCount = expressAsyncHandler(async (req: Request, res: Resp
     data: { count },
   });
 });
+export const markAllNotificationAsReads = expressAsyncHandler(async (req: Request, res: Response) => {
+  // @ts-ignore - Assuming req.user is populated by your Auth middleware
+  const username = req.CurrentUser?.username;
+
+  if (!username) {
+    throw new ErrorHandler(401, "Not authorized to access this route");
+  }
+  const result = await NotificationService.markAllNotificationAsRead(username);
+  res.status(200).json({
+    status: "success",
+    data: {
+      modifiedCount: result.modifiedCount,
+      message: `${result.modifiedCount} notifications marked as read`
+    },
+  });
+});

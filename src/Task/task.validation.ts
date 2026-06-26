@@ -34,6 +34,54 @@ class TaskValidation {
         }
         return true;
       }),
+    body("startDate")
+      .optional()
+      .custom((val, { req }) => {
+        const date = parseDate(val);
+        if (!date) {
+          throw new Error(
+            "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
+          );
+        }
+        // التحقق من أن التاريخ في المستقبل (اختياري - حسب احتياجاتك)
+        if (!isFutureDate(date)) {
+          throw new Error("Task duration must be in the future");
+        }
+        if (date >= req.body.endDate) {
+          throw new Error("Start date must be before end-Date");
+        }
+        return true;
+      }),
+    body("taskId")
+      .optional()
+      .custom(async (val, { req }) => {
+        if (!val) return true; // taskId is optional
+
+        // Validate parent task exists
+        const parentTask: Task | null = await taskSchema.findById(
+          val.toString(),
+        );
+        if (!parentTask) {
+          throw new Error("Parent task not found");
+        }
+
+        // Validate parent task belongs to same project
+
+        if (parentTask.project._id.toString() !== req.projectId.toString()) {
+          throw new Error("Parent task must belong to the same project");
+        }
+        // Validate that child task's startDate is not before parent task's endDate
+        if (
+          req.body.startDate &&
+          new Date(req.body.startDate) < new Date(parentTask.endDate)
+        ) {
+          throw new Error(
+            "Child task start date must be on or after parent task end date",
+          );
+        }
+
+        return true;
+      }),
     body("description")
       .notEmpty()
       .withMessage("Please set the description for the task"),
@@ -65,7 +113,12 @@ class TaskValidation {
       ) {
         throw new Error("Task end date cannot be after project end date");
       }
-     
+      if (
+        req.body.startDate &&
+        new Date(project.startDate) >= new Date(req.body.startDate)
+      ) {
+        throw new Error("Task start date cannot be before project start date");
+      }
       if (
         project.usernameAdmin.toString() !== req.CurrentUser.username.toString()
       ) {
@@ -126,6 +179,36 @@ class TaskValidation {
       }),
   ];
   update = [
+    body("taskId")
+      .optional()
+      .custom(async (val, { req }) => {
+        if (!val) return true; // taskId is optional
+
+        // Validate parent task exists
+        const parentTask: Task | null = await taskSchema.findById(
+          val.toString(),
+        );
+        if (!parentTask) {
+          throw new Error("Parent task not found");
+        }
+
+        // Validate parent task belongs to same project
+        if (parentTask.project.toString() !== req.projectId.toString()) {
+          throw new Error("Parent task must belong to the same project");
+        }
+
+        // Validate that child task's startDate is not before parent task's endDate
+        if (
+          req.body.startDate &&
+          new Date(req.body.startDate) < new Date(parentTask.endDate)
+        ) {
+          throw new Error(
+            "Child task start date must be on or after parent task end date",
+          );
+        }
+
+        return true;
+      }),
     body("color")
       .optional()
       .notEmpty()
@@ -139,17 +222,6 @@ class TaskValidation {
           throw new Error(
             "Invalid date format. Use ISO format: YYYY-MM-DD or 2024-12-31T10:30:00Z",
           );
-          if (req.params!.id) {
-            const task: Task | null = await taskSchema.findById({
-              _id: req.params!.id,
-            });
-            if (task) {
-              task?.duration !=
-                getDaysDifference(new Date(Date.now()), date!)?.toString() +
-                  " Days" || "0 Days";
-              await task!.save();
-            }
-          }
         }
         return true;
       }),

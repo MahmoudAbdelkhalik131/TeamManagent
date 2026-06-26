@@ -2,6 +2,7 @@ import { Router } from "express";
 import dashboardServices from "./Dashboard.services";
 import auth from "../auth/auth.middleware";
 
+
 export const dashboardRouter: Router = Router();
 
 // Get member dashboard - accessible to all authenticated users
@@ -32,4 +33,13 @@ dashboardRouter.get(
   dashboardServices.getDashboardHistory,
 );
 
+// Get AI Insights - accessible to all authenticated users
+dashboardRouter.get(
+  "/ai-insights",
+  auth.allowedRoles(["admin"]),
+  auth.verifyToken,
+  dashboardServices.getAIInsights,
+);
+
 export default dashboardRouter;
+

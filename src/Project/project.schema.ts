@@ -15,6 +15,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
         return val;
       },
     },
+    startDate:{type:Date },
     color: { type: String },
     usernameAdmin: { type: String },
     description: { type: String },

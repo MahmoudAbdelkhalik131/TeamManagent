@@ -9,11 +9,17 @@
 import { NextFunction,Response } from "express";
 import {upload} from "./cloudinary";
 
-// ── Single file upload ─────────────────────────────────────────────────────
+// ── Single file upload (field name: "file") ────────────────────────────────
 // Usage in route: router.post('/avatar', uploadSingle, controller)
 // Frontend input: <input type="file" name="file" />
+export const uploadSingle = upload.single("file");
 
-// ── Multiple files (up to 10) ──────────────────────────────────────────────
+// ── Single image upload (field name: "image") ─────────────────────────────
+// Usage in route: router.put('/profile/avatar', uploadSingleImage, controller)
+// Frontend input: <input type="file" name="image" accept="image/*" />
+export const uploadSingleImage = upload.single("image");
+
+// ── Multiple files (up to 5) ──────────────────────────────────────────────
 // Usage in route: router.post('/gallery', uploadMultiple, controller)
 // Frontend input: <input type="file" name="files" multiple />
 export const uploadMultiple = upload.array("files", 5);

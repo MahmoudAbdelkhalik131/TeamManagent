@@ -6,6 +6,7 @@ interface Project extends Document {
   status: "Active"|"Inactive"|"Done";
   duration: string;
   readonly color: string;
+  readonly startDate:Date;
   readonly usernameAdmin:string;
   readonly description:string;
   percent:number;

@@ -6,6 +6,7 @@ import { Request, Response, NextFunction } from "express";
 import Token from "../middlewares/Tokens";
 import { ErrorHandler } from "../middlewares/errorHandler";
 import sendEmail from "../utils/sendEmail";
+import MESSAGES from "../utils/messages";
 
 
 class UserServices {
@@ -18,13 +19,13 @@ class UserServices {
       email: req.body.email,
     });
     if (!user) {
-      return next(new ErrorHandler(400, "Invalid email or password"));
+      return next(new ErrorHandler(400, MESSAGES.AUTH_INVALID_CREDENTIALS));
     }
 
     // Defense in depth: never rely only on validation middleware for password checks.
     const isPasswordCorrect = await bcrypt.compare(req.body.password, user.password);
     if (!isPasswordCorrect) {
-      return next(new ErrorHandler(400, "Invalid email or password"));
+      return next(new ErrorHandler(400, MESSAGES.AUTH_INVALID_CREDENTIALS));
     }
 
     const token = Token.createToken(user);
@@ -39,6 +40,7 @@ class UserServices {
       password: await bcrypt.hash(req.body.password, 10),
       role: req.body.role || "member",
       verifyCode: verifyCode,
+      fullName: req.body.fullName
     };
     
     try {
@@ -81,7 +83,8 @@ class UserServices {
           password: decode.user.password,
           role: decode.user.role || "member",
           verifyCode: decode.user.verifyCode,
-          validUser: false
+          validUser: false,
+          fullName: decode.user.fullName
          })
          userCreated.validUser = true;
          userCreated.verifyCode = await bcrypt.hash(userCreated.verifyCode, 10);

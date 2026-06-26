@@ -7,6 +7,8 @@ import profileRouter from "./profile/profile.routes";
 import dashboardRouter from "./Dashboard/Dashboard.routes";
 import chatRouter from "./chat/chat.routes";
 import notificationRouter from "./notification/notification.routes";
+import geminiRouter from "./GeimineAPI/Gemenia.routes";
+
 declare module "express" {
   interface Request {
     projectId?: string;
@@ -24,7 +26,9 @@ const Routes = (app: express.Application) => {
   app.use("/api/v1/dashboard", dashboardRouter);
   app.use("/api/v1/chat", chatRouter);
   app.use("/api/v1/notifications", notificationRouter);
+  app.use("/api/v1/gemini", geminiRouter);
   app.use(errorHandler)
+
 };
 
 export default Routes;

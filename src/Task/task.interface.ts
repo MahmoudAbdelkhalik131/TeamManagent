@@ -5,11 +5,13 @@ interface Task extends Document {
   readonly name: string;
   duration: string;
   endDate:Date;
+  task?:Task;
   readonly project: Project;
   readonly color: string;
   readonly description: string;
   readonly usernameMember: string;
   readonly usernameAdmin: string;
+  startDate:Date;
   createdAt:Date,
   updatedAt:Date,
   status: "Pending" | "In-progress" | "Done" | "Reviewing" | "Accepted";
@@ -21,5 +23,8 @@ interface Task extends Document {
   firstDoneAt?: Date;
   acceptedAt?: Date;
   lastOverdueNotificationAt?: Date;
+  aiReview?: string;
+  aiVerdict?: "ACCEPT" | "REJECT" | "NONE";
 }
+
 export default Task;

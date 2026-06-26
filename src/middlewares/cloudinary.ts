@@ -53,12 +53,20 @@ export const upload = multer({
   },
 });
 
-// ── 4. Determine the right Cloudinary folder based on MIME type ────────────
+// ── 4. Determine the right Cloudinary folder and resource_type based on MIME ─
 const getFolder = (mimetype: string): string => {
   if (mimetype.startsWith("image/")) return "uploads/images";
   if (mimetype.startsWith("video/")) return "uploads/videos";
   if (mimetype === "application/pdf") return "uploads/documents";
   return "uploads/misc";
+};
+
+const getResourceType = (
+  mimetype: string
+): "image" | "video" | "raw" => {
+  if (mimetype.startsWith("image/")) return "image";
+  if (mimetype.startsWith("video/")) return "video";
+  return "raw"; // PDFs, DOCX, etc.
 };
 
 // ── 5. The core function: stream the buffer up to Cloudinary ───────────────
@@ -77,13 +85,13 @@ export const uploadToCloudinary = (
 ): Promise<CloudinaryUploadResult> => {
   return new Promise((resolve, reject) => {
     const folder = getFolder(file.mimetype);
+    const resource_type = getResourceType(file.mimetype);
 
     // upload_stream reads from a Node.js readable stream
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
-        resource_type: "raw",
-        // handles images, videos, PDFs, docs
+        resource_type, // ✅ dynamic: "image" | "video" | "raw"
       },
       (error, result) => {
         if (error) return reject(error);

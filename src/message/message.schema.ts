@@ -50,6 +50,7 @@ const messageSchema = new mongoose.Schema<Message>(
       type: [String],
       default: [],
     },
+    
   },
   {
     // Adds createdAt & updatedAt automatically — clients use createdAt to sort messages

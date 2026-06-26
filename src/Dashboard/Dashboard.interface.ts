@@ -70,6 +70,14 @@ export interface MemberDashboard {
   projects: ProjectSummary[];
   tasks: TaskSummary[];
   upcomingTasks: TaskSummary[];
+  teamPerformance: {
+    memberUsername: string;
+    totalTasks: number;
+    completedTasks: number;
+    acceptedTasks: number;
+    completionRate: number;
+    rating: number;
+  }[];
   weeklyProductivity: Record<string, TaskSummary[]>;
 }
 

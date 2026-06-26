@@ -24,7 +24,7 @@ class ProjectServices {
         const project = p.toObject() as any;
         if (project.endDate && new Date(project.endDate) > new Date()) {
           project.duration = Math.ceil(
-            (new Date(project.endDate).getTime() - new Date().getTime()) /
+            (new Date(project.endDate).getTime() - new Date(project.startDate).getTime()) /
             (1000 * 3600 * 24),
           ) + " day(s)";
         } else {
@@ -52,7 +52,7 @@ class ProjectServices {
         await project.save()
       }
       project.duration =
-        getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
+        getDaysDifference(new Date(project.startDate), project.endDate)?.toString()! +
         " Days";
       await project.save();
 
@@ -134,7 +134,7 @@ class ProjectServices {
       }
       const projectObj = project.toObject() as any;
       projectObj.duration =
-        getDaysDifference(new Date(Date.now()), project.endDate)?.toString()! +
+        getDaysDifference(new Date(project.startDate), project.endDate)?.toString()! +
         " Days";
       const taskProject = await taskSchema.find({
         project: project._id!.toString(),
@@ -200,7 +200,7 @@ class ProjectServices {
       }
       project.duration! =
         getDaysDifference(
-          new Date(Date.now()),
+          new Date(project.startDate),
           new Date(project?.endDate!),
         )?.toString() + " Days" || "0 Days";
       await project?.save({ validateModifiedOnly: true });

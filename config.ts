@@ -5,7 +5,7 @@ const Connection = async () => {
     // Disable buffering so we get immediate errors if connection fails
     mongoose.set('bufferCommands', false); 
     
-    await mongoose.connect(process.env.Mongo!);
+    await mongoose.connect(process.env.DBLINK!);
     console.log(`Connected to Database: ${mongoose.connection.host}`);
   } catch (e) {
     console.error("CRITICAL: MongoDB Connection Failed!", e);

@@ -3,6 +3,7 @@ import userSchema from "./user.schema";
 import Users from "./user.interface";
 import validatorMiddleware from "../middlewares/validation.middleware";
 import bcrypt from "bcrypt";
+import MESSAGES from "../utils/messages";
 class UserValidation {
   register = [
     body("username")
@@ -51,14 +52,14 @@ class UserValidation {
         const user: Users | null = await userSchema.findOne({ email: val });
         if (!user || user.validUser == false) {
           await userSchema.deleteOne({ email: val });
-          throw new Error("User not found please register first.....");
+          throw new Error(JSON.stringify(MESSAGES.AUTH_USER_NOT_FOUND));
         }
         const isPasswordCorrect = await bcrypt.compare(
           req.body.password,
           user.password,
         );
         if (!isPasswordCorrect) {
-          throw new Error("Invalid Username or Password");
+          throw new Error(JSON.stringify(MESSAGES.AUTH_INVALID_CREDENTIALS));
         }
         return true;
       }),

@@ -19,7 +19,9 @@ app.use(express.json({ limit: "1mb" }));
 
 Connection();
 app.use(express.static('uploads'))
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+}));
 const allowedOrigins = process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : ["http://localhost:8080"];
 
 app.use(cors({

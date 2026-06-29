@@ -213,6 +213,7 @@ export function initChat(io: Server) {
      */
     socket.on("send_private_message", async (data: PrivateMessageData) => {
       try {
+        console.log(data)
         const { receiverUsername, content } = data;
 
         // --- Validation ---

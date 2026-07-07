@@ -21,6 +21,10 @@ interface Message extends Document {
 
   // Only set for announcements — a short subject line
   readonly title?: string;
+  readonly files?: Array<{
+    url: string;
+    public_id: string;
+  }>;
   readonly readBy?: string[];
 
   // Mongoose adds these automatically via { timestamps: true }

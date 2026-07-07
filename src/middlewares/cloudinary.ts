@@ -87,11 +87,24 @@ export const uploadToCloudinary = (
     const folder = getFolder(file.mimetype);
     const resource_type = getResourceType(file.mimetype);
 
+    // Parse name and extension
+    const originalName = file.originalname || "file";
+    const lastDotIndex = originalName.lastIndexOf(".");
+    const ext = lastDotIndex !== -1 ? originalName.substring(lastDotIndex) : "";
+    const nameWithoutExt = lastDotIndex !== -1 ? originalName.substring(0, lastDotIndex) : originalName;
+
+    // Sanitize name to contain only alphanumeric characters, hyphens, and underscores
+    const sanitizedName = nameWithoutExt.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const uniqueId = `${sanitizedName}_${Date.now()}`;
+    // Raw resource types must contain the extension in the public_id, otherwise Cloudinary won't return it in the URL
+    const public_id = resource_type === "raw" ? `${uniqueId}${ext}` : uniqueId;
+
     // upload_stream reads from a Node.js readable stream
     const uploadStream = cloudinary.uploader.upload_stream(
       {
         folder,
         resource_type, // ✅ dynamic: "image" | "video" | "raw"
+        public_id,
       },
       (error, result) => {
         if (error) return reject(error);

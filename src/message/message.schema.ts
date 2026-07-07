@@ -34,9 +34,9 @@ const messageSchema = new mongoose.Schema<Message>(
     // The message body — hard-capped at 2000 characters at the schema level
     content: {
       type: String,
-      required: true,
       trim: true,
       maxlength: [2000, "Message content cannot exceed 2000 characters"],
+      default: "",
     },
 
     // Only used for announcements — a short headline / subject
@@ -48,6 +48,15 @@ const messageSchema = new mongoose.Schema<Message>(
     },
     readBy: {
       type: [String],
+      default: [],
+    },
+    files: {
+      type: [
+        {
+          url: { type: String, required: true },
+          public_id: { type: String, required: true },
+        },
+      ],
       default: [],
     },
     

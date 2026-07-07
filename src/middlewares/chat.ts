@@ -44,6 +44,7 @@ interface AnnouncementData {
   projectId: string;
   title: string;
   content: string;
+  files?: Array<{ url: string; public_id: string }>;
 }
 
 // ==========================================================
@@ -349,10 +350,11 @@ export function initChat(io: Server) {
      */
     socket.on("send_announcement", async (data: AnnouncementData) => {
       try {
-        const { projectId, title, content } = data;
+        const { projectId, title, content, files } = data;
 
         // --- Validate content and title ---
-        if (!isValidContent(socket, content)) return;
+        const hasTextContent = typeof content === "string" && content.trim().length > 0;
+        const hasFiles = Array.isArray(files) && files.length > 0;
 
         if (!title || typeof title !== "string" || title.trim().length === 0) {
           return emitError(socket, "Announcement title is required");
@@ -362,6 +364,12 @@ export function initChat(io: Server) {
             socket,
             "Announcement title cannot exceed 200 characters"
           );
+        }
+
+        // Content and Files are fully optional for announcements
+        // Just enforce length limit if content exists
+        if (hasTextContent && content.trim().length > 2000) {
+          return emitError(socket, "Message content cannot exceed 2000 characters");
         }
 
         if (!projectId || typeof projectId !== "string") {
@@ -386,7 +394,8 @@ export function initChat(io: Server) {
           sender: user.username,
           projectId: projectId,
           title: title.trim(),
-          content: content.trim(),
+          content: hasTextContent ? content.trim() : "",
+          files: files || [],
           readBy: [user.username],
         });
 
@@ -398,6 +407,7 @@ export function initChat(io: Server) {
           projectId: projectId,
           title: savedAnnouncement.title,
           content: savedAnnouncement.content,
+          files: savedAnnouncement.files,
           createdAt: savedAnnouncement.createdAt,
         });
       } catch (err: any) {

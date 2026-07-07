@@ -2,6 +2,7 @@ import { Router } from "express";
 import auth from "../auth/auth.middleware";
 import chatValidation from "./chat.validation";
 import chatServices from "./chat.services";
+import { upload } from "../middlewares/cloudinary";
 
 const chatRouter: Router = Router();
 
@@ -51,6 +52,20 @@ chatRouter.patch(
   "/read",
   auth.verifyToken,
   chatServices.markConversationAsRead
+);
+
+// --- POST: upload files for chat (e.g. announcements) ---
+chatRouter.post(
+  "/upload",
+  auth.verifyToken,
+  upload.array("files", 10), // Limit to 10 files
+  chatServices.uploadFiles
+);
+
+// --- GET: download file proxy ---
+chatRouter.get(
+  "/download",
+  chatServices.downloadFile
 );
 
 export default chatRouter;

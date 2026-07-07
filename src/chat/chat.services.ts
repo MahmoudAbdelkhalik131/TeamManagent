@@ -3,6 +3,8 @@ import { Request, Response, NextFunction } from "express";
 import MessageModel from "../message/message.schema";
 import projectSchema from "../Project/project.schema";
 import userSchema from "../Users/user.schema";
+import { uploadToCloudinary } from "../middlewares/cloudinary";
+import https from "https";
 
 class ChatServices {
   /**
@@ -225,6 +227,66 @@ class ChatServices {
       );
 
       res.status(200).json({ status: "success" });
+    }
+  );
+
+  /**
+   * POST /api/v1/chat/upload
+   * Uploads files for chat messages (e.g. announcements)
+   */
+  uploadFiles = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      if (!req.files || (Array.isArray(req.files) && req.files.length === 0)) {
+        res.status(400).json({ message: "No files uploaded" });
+        return;
+      }
+
+      const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
+      const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
+      
+      const uploadedFiles = await Promise.all(uploadPromises);
+      
+      const formattedFiles = uploadedFiles.map((file) => ({
+        url: file.secure_url,
+        public_id: file.public_id,
+      }));
+
+      res.status(200).json({ data: formattedFiles });
+    }
+  );
+
+  /**
+   * GET /api/v1/chat/download
+   * Proxies file downloads from Cloudinary to force attachment headers and correct file names.
+   */
+  downloadFile = asyncHandler(
+    async (req: Request, res: Response, next: NextFunction) => {
+      const { url, filename } = req.query;
+      if (!url || typeof url !== "string") {
+        res.status(400).json({ message: "URL is required" });
+        return;
+      }
+
+      const fileUrl = decodeURIComponent(url);
+      const targetFilename = (typeof filename === "string" && filename)
+        ? filename
+        : fileUrl.substring(fileUrl.lastIndexOf("/") + 1) || "download";
+
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${encodeURIComponent(targetFilename)}"`
+      );
+
+      https.get(fileUrl, (stream) => {
+        if (stream.headers["content-type"]) {
+          res.setHeader("Content-Type", stream.headers["content-type"]);
+        } else {
+          res.setHeader("Content-Type", "application/octet-stream");
+        }
+        stream.pipe(res);
+      }).on("error", (err) => {
+        next(err);
+      });
     }
   );
 }

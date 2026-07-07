@@ -147,7 +147,7 @@ class TaskServices {
           return next(new ErrorHandler(404, "Parent task not found"));
         }
         // When task has a parent, its startDate is the parent's endDate
-        const childStartDate = parentTask.endDate;
+        // const childStartDate = parentTask.endDate;
         const tas: Task = await taskSchema.create({
           project: req.projectId,
           usernameMember: req.body.username,
@@ -155,14 +155,14 @@ class TaskServices {
           name: req.body.name,
           status: req.body.status || "Pending",
           endDate: req.body.endDate,
+          startDate: req.body.startDate,
           duration:
             getDaysDifference(
-              new Date(childStartDate),
+              new Date(req.body.startDate),
               new Date(req.body.endDate),
             )?.toString() + " Days",
           color: req.body.color || "#000000", // default color if not provided
           description: req.body.description,
-          startDate: childStartDate,
           task: req.body.taskId,
         });
         task = tas;

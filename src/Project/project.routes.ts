@@ -28,7 +28,8 @@ projectRouter
     auth.allowedRoles(["admin"]),
     projectValidation.deleteOne,
     projectServices.deleteOne,
-  );
+  )
+  
 
 projectRouter.post(
   "/:id/members",
@@ -54,5 +55,9 @@ projectRouter.delete(
   auth.allowedRoles(["admin"]),
   projectServices.deleteAttachment,
 );
-
+projectRouter.route("/:id/member")
+.delete(
+    auth.allowedRoles(["admin"]),
+    projectServices.deleteMember,
+  );
 export default projectRouter;

@@ -15,8 +15,24 @@ import {
 import dashboardSnapshotSchema from "./DashboardSnapshot.schema";
 import geminiService from "../utils/gemini.service";
 
-
 class DashboardServices {
+  private getStartDateForPeriod(period?: string): Date | undefined {
+    if (!period || period === "all") return undefined;
+    const now = new Date();
+    switch (period) {
+      case "lastWeek":
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case "last10Days":
+        return new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+      case "last20Days":
+        return new Date(now.getTime() - 20 * 24 * 60 * 60 * 1000);
+      case "lastMonth":
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      default:
+        return undefined;
+    }
+  }
+
   // Helper to calculate member dashboard data
   async calculateMemberDashboard(username: string): Promise<MemberDashboard> {
     // Get user info
@@ -168,7 +184,6 @@ class DashboardServices {
       weeklyProductivity,
       teamPerformance: [], // Added to satisfy the MemberDashboard interface
     };
-
   }
 
   // Helper to calculate admin dashboard data
@@ -301,8 +316,6 @@ class DashboardServices {
           taskRating -= (task.reviewCycles || 0) * 0.1;
 
           // Penalty for lateness
-          // For submitted tasks, use firstDoneAt. For overdue tasks, use current time (now).
-          // Fallback to acceptedAt if firstDoneAt is missing for some reason.
           let lateDate = isSubmitted ? (task.firstDoneAt || task.acceptedAt) : (isOverdue ? now : null);
           
           if (lateDate && new Date(lateDate) > new Date(task.endDate)) {
@@ -485,12 +498,20 @@ class DashboardServices {
       try {
         const username = req.CurrentUser.username.toString();
         const role = req.CurrentUser.role;
+        const period = req.query.period as string;
+        const startDate = this.getStartDateForPeriod(period);
 
-        // Fetch last 30 snapshots for this user
-        const snapshots = await dashboardSnapshotSchema
-          .find({ username, role })
-          .sort({ snapshotDate: 1 }) // Chronological order
-          .limit(30);
+        const query: any = { username, role };
+        if (startDate) {
+          query.snapshotDate = { $gte: startDate };
+        }
+
+        // Fetch snapshots for this user
+        let snapshotsQuery = dashboardSnapshotSchema.find(query).sort({ snapshotDate: 1 });
+        if (!startDate) {
+          snapshotsQuery = snapshotsQuery.limit(30);
+        }
+        const snapshots = await snapshotsQuery;
 
         // Format for the graph
         const historyData = snapshots.map(s => {
@@ -540,4 +561,3 @@ class DashboardServices {
 
 const dashboardServices = new DashboardServices();
 export default dashboardServices;
-

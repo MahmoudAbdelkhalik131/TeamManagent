@@ -10,7 +10,7 @@ interface Project extends Document {
   readonly usernameAdmin:string;
   readonly description:string;
   percent:number;
-  readonly usernameMember: string[];
+  usernameMember: string[];
   totalTasks:number;
   attachments?: CloudinaryUploadResult[];
 }

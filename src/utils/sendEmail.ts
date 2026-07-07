@@ -22,13 +22,13 @@ const sendEmail = async (options: options): Promise<void> => {
   });
 
   const emailOptions: any = {
-    from: `"${process.env.APP_NAME || "TeamManager"}" <${process.env.EMAIL_USERNAME}>`,
+    from: `"${process.env.APP_NAME || "TeamSync"}" <${process.env.EMAIL_USERNAME}>`,
     to: options.email,
     subject: options.subject,
     text: `Your verification code is: ${options.verifyCode}`,
     html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 10px;">
-        <h2 style="color: #333; text-align: center;">${process.env.APP_NAME || "TeamManager"}</h2>
+        <h2 style="color: #333; text-align: center;">${process.env.APP_NAME || "TeamSync"}</h2>
         <hr style="border: 0; border-top: 1px solid #eee;" />
         <div style="background-color: #f9f9f9; padding: 20px; border-radius: 5px; margin-top: 20px;">
           <h3 style="color: #555; margin-top: 0;">${options.subject}</h3>

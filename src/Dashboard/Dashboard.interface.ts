@@ -79,6 +79,7 @@ export interface MemberDashboard {
     rating: number;
   }[];
   weeklyProductivity: Record<string, TaskSummary[]>;
+  productivity?: { name: string; tasks: number }[];
 }
 
 // Admin dashboard data
@@ -113,4 +114,5 @@ export interface AdminDashboard {
     rating: number;
   }[];
   weeklyProductivity: Record<string, TaskSummary[]>;
+  productivity?: { name: string; tasks: number }[];
 }

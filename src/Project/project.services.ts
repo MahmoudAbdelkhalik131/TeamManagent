@@ -293,19 +293,32 @@ class ProjectServices {
     }
   );
   deleteAttachment = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-      const project: Project | null = await projectSchema.findById(req.params.id);
-      if (!project) {
-        return next(new Error("No project "));
-      }
-      const attachment = project.attachments?.find((a) => a.public_id === req.params.public_id);
-      if (!attachment) {
-        return next(new Error("Attachment not found"));
-      }
-      await cloudinary.uploader.destroy(attachment.public_id)
-      project.attachments = project.attachments?.filter((a) => a.public_id !== req.params.public_id);
-      await project.save();
-      res.status(200).json({ data: project });
-    })
+    const project: Project | null = await projectSchema.findById(req.params.id);
+    if (!project) {
+      return next(new Error("No project "));
+    }
+    const attachment = project.attachments?.find((a) => a.public_id === req.params.public_id);
+    if (!attachment) {
+      return next(new Error("Attachment not found"));
+    }
+    await cloudinary.uploader.destroy(attachment.public_id)
+    project.attachments = project.attachments?.filter((a) => a.public_id !== req.params.public_id);
+    await project.save();
+    res.status(200).json({ data: project });
+  })
+  deleteMember = asyncHandler(async(req: Request, res: Response, next: NextFunction) => {
+    const project: Project | null = await projectSchema.findById(req.params.id);
+    if (!project) {
+      return next(new Error("No project "));
+    }
+    const username = project.usernameMember?.find((a) => a === req.body.usernameMember);
+    if (!username) {
+      return next(new Error("Member not found"));
+    }
+    project.usernameMember = project.usernameMember?.filter((a) => a !== req.body.usernameMember);
+    await project.save();
+    res.status(200).json({ data: project });
+  })
 }
 const projectServices = new ProjectServices();
 export default projectServices;

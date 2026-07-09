@@ -3,7 +3,6 @@ import projectSchema from "./project.schema";
 import asyncHandler from "express-async-handler";
 import { Request, Response, NextFunction } from "express";
 import taskSchema from "../Task/task.schema";
-import Task from "../Task/task.interface";
 import { getDaysDifference } from "../utils/dateHandler";
 import { notifyProjectMembers, createNotification } from "../notification/notification.services";
 import userSchema from "../Users/user.schema";
@@ -236,7 +235,9 @@ class ProjectServices {
       );
       project!.usernameMember.push(usernameMember);
       await project!.save();
-
+      const user = await userSchema.findOne({ username: req.CurrentUser.username })
+      user?.teamMates.push(usernameMember)
+      await user?.save({ validateModifiedOnly: true })
       // Notify the newly added user
       await createNotification(
         usernameMember,
@@ -306,7 +307,7 @@ class ProjectServices {
     await project.save();
     res.status(200).json({ data: project });
   })
-  deleteMember = asyncHandler(async(req: Request, res: Response, next: NextFunction) => {
+  deleteMember = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
     const project: Project | null = await projectSchema.findById(req.params.id);
     if (!project) {
       return next(new Error("No project "));
@@ -314,7 +315,10 @@ class ProjectServices {
     const username = project.usernameMember?.find((a) => a === req.body.usernameMember);
     if (!username) {
       return next(new Error("Member not found"));
-    }
+    } const user = await userSchema.findOne({ username: req.CurrentUser.username })
+    if(!user) return next(new Error("User not found"));
+    user.teamMates=user?.teamMates?.filter((a) => a !== req.body.usernameMember);
+    await user?.save({validateModifiedOnly:true})
     project.usernameMember = project.usernameMember?.filter((a) => a !== req.body.usernameMember);
     await project.save();
     res.status(200).json({ data: project });

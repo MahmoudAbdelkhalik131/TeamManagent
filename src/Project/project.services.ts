@@ -43,13 +43,25 @@ class ProjectServices {
         usernameAdmin: adminUsername,
         ...req.body,
       });
-      if (req.files) {
-        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
-        const results = await Promise.all(uploadPromises);
-        project.attachments = results.map((r: CloudinaryUploadResult) => r);
-        await project.save()
+      if (req.CurrentUser.role === "admin") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!project.adminAttatchment) project.adminAttatchment = [];
+          project.adminAttatchment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
       }
+      await project.save()
       project.duration =
         getDaysDifference(new Date(project.startDate), project.endDate)?.toString()! +
         " Days";
@@ -189,14 +201,26 @@ class ProjectServices {
       if (!project) {
         return next(new Error("project not found"));
       }
-      if (req.files) {
-        const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) => uploadToCloudinary(file));
-        const results = await Promise.all(uploadPromises);
-        if (!project.attachments) project.attachments = [];
-        project.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
-        await project.save()
+      if (req.CurrentUser.role === "admin") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!project.adminAttatchment) project.adminAttatchment = [];
+          project.adminAttatchment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
       }
+      await project.save()
+
       project.duration! =
         getDaysDifference(
           new Date(project.startDate),
@@ -298,12 +322,37 @@ class ProjectServices {
     if (!project) {
       return next(new Error("No project "));
     }
-    const attachment = project.attachments?.find((a) => a.public_id === req.params.public_id);
-    if (!attachment) {
+
+    const { public_id } = req.params;
+    let foundInAdmin = false;
+    let foundInMember = false;
+    let attachmentToDelete: any = null;
+
+    // Check admin attachments if current user is admin
+    if (req.CurrentUser.role === "admin") {
+      attachmentToDelete = project.adminAttatchment?.find(
+        (a) => a.public_id === public_id,
+      );
+      if (attachmentToDelete) {
+        foundInAdmin = true;
+      }
+    }
+
+    if (!attachmentToDelete) {
       return next(new Error("Attachment not found"));
     }
-    await cloudinary.uploader.destroy(attachment.public_id)
-    project.attachments = project.attachments?.filter((a) => a.public_id !== req.params.public_id);
+
+    // Delete from Cloudinary with the correct resource_type (raw, image, video, etc.)
+    await cloudinary.uploader.destroy(attachmentToDelete.public_id, {
+      resource_type: attachmentToDelete.resource_type || "image",
+    });
+
+    // Update local arrays
+    if (foundInAdmin) {
+      project.adminAttatchment = project.adminAttatchment?.filter(
+        (a) => a.public_id !== public_id,
+      );
+    }
     await project.save();
     res.status(200).json({ data: project });
   })
@@ -316,9 +365,9 @@ class ProjectServices {
     if (!username) {
       return next(new Error("Member not found"));
     } const user = await userSchema.findOne({ username: req.CurrentUser.username })
-    if(!user) return next(new Error("User not found"));
-    user.teamMates=user?.teamMates?.filter((a) => a !== req.body.usernameMember);
-    await user?.save({validateModifiedOnly:true})
+    if (!user) return next(new Error("User not found"));
+    user.teamMates = user?.teamMates?.filter((a) => a !== req.body.usernameMember);
+    await user?.save({ validateModifiedOnly: true })
     project.usernameMember = project.usernameMember?.filter((a) => a !== req.body.usernameMember);
     await project.save();
     res.status(200).json({ data: project });

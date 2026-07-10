@@ -3,8 +3,45 @@ import { Request, Response, NextFunction } from "express";
 import MessageModel from "../message/message.schema";
 import projectSchema from "../Project/project.schema";
 import userSchema from "../Users/user.schema";
-import { uploadToCloudinary } from "../middlewares/cloudinary";
-import https from "https";
+import { uploadToCloudinary, cloudinary } from "../middlewares/cloudinary";
+import { Readable } from "stream";
+
+function parseCloudinaryUrl(urlStr: string) {
+  try {
+    if (urlStr.includes("res.cloudinary.com")) {
+      const parts = urlStr.split("res.cloudinary.com/")[1].split("/");
+      const cloudName = parts[0];
+      const resourceType = parts[1]; // "raw", "image", "video"
+      const type = parts[2]; // "upload", "private", "authenticated"
+      
+      let versionIndex = 3;
+      if (parts[versionIndex].startsWith("v") && /^\d+$/.test(parts[versionIndex].substring(1))) {
+        versionIndex = 4;
+      }
+      const publicIdWithExt = parts.slice(versionIndex).join("/");
+      
+      let publicId = publicIdWithExt;
+      let format = "";
+      const dotIndex = publicIdWithExt.lastIndexOf(".");
+      if (dotIndex !== -1) {
+        format = publicIdWithExt.substring(dotIndex + 1);
+        if (resourceType !== "raw") {
+          publicId = publicIdWithExt.substring(0, dotIndex);
+        }
+      }
+      return {
+        cloudName,
+        resourceType,
+        type,
+        publicId,
+        format,
+      };
+    }
+  } catch (e) {
+    console.error("Failed to parse Cloudinary URL:", e);
+  }
+  return null;
+}
 
 class ChatServices {
   /**
@@ -268,25 +305,58 @@ class ChatServices {
       }
 
       const fileUrl = decodeURIComponent(url);
+      console.log("[Download File Proxy] URL requested:", fileUrl);
       const targetFilename = (typeof filename === "string" && filename)
         ? filename
         : fileUrl.substring(fileUrl.lastIndexOf("/") + 1) || "download";
 
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${encodeURIComponent(targetFilename)}"`
-      );
+      let downloadUrl = fileUrl;
+      const parsed = parseCloudinaryUrl(fileUrl);
+      if (parsed) {
+        try {
+          downloadUrl = cloudinary.utils.private_download_url(parsed.publicId, parsed.format, {
+            resource_type: parsed.resourceType,
+            type: parsed.type,
+            expires_at: Math.floor(Date.now() / 1000) + 3600 // 1 hour
+          });
+          console.log("[Download File Proxy] Generated signed download URL:", downloadUrl);
+        } catch (err) {
+          console.error("[Download File Proxy] Failed to generate signed URL:", err);
+        }
+      }
 
-      https.get(fileUrl, (stream) => {
-        if (stream.headers["content-type"]) {
-          res.setHeader("Content-Type", stream.headers["content-type"]);
+      try {
+        const response = await fetch(downloadUrl);
+        if (!response.ok) {
+          const cldError = response.headers.get("x-cld-error");
+          console.error(`[Download File Proxy] Fetch failed for ${downloadUrl}. Status: ${response.status}. Cloudinary error: ${cldError}`);
+          res.status(response.status).json({
+            message: `Failed to download file from source (status: ${response.status})`,
+            cloudinaryError: cldError || undefined,
+          });
+          return;
+        }
+
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${encodeURIComponent(targetFilename)}"`
+        );
+
+        const contentType = response.headers.get("content-type");
+        if (contentType) {
+          res.setHeader("Content-Type", contentType);
         } else {
           res.setHeader("Content-Type", "application/octet-stream");
         }
-        stream.pipe(res);
-      }).on("error", (err) => {
+
+        if (response.body) {
+          Readable.fromWeb(response.body as any).pipe(res);
+        } else {
+          res.end();
+        }
+      } catch (err) {
         next(err);
-      });
+      }
     }
   );
 }

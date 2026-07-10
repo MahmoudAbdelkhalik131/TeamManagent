@@ -1,5 +1,5 @@
 import { Document } from "mongoose";
-import { CloudinaryUploadResult } from "../middlewares/cloudinary";
+import { cloudinary, CloudinaryUploadResult } from "../middlewares/cloudinary";
 interface Project extends Document {
   readonly name: string;
   endDate: Date;
@@ -12,6 +12,6 @@ interface Project extends Document {
   percent:number;
   usernameMember: string[];
   totalTasks:number;
-  attachments?: CloudinaryUploadResult[];
+  adminAttatchment?: CloudinaryUploadResult[];
 }
 export default Project;

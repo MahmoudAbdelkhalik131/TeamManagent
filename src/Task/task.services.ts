@@ -186,17 +186,43 @@ class TaskServices {
         });
         task = tas;
       }
-      if (req.files) {
-        const files = Array.isArray(req.files)
-          ? req.files
-          : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) =>
-          uploadToCloudinary(file),
-        );
-        const results = await Promise.all(uploadPromises);
-        task.attachments = results.map((r: CloudinaryUploadResult) => r);
-        await task.save();
+      if (req.CurrentUser.role === "member") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!task.memberAttachment) task.memberAttachment = [];
+          task.memberAttachment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
       }
+      if (req.CurrentUser.role === "admin") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!task.adminAttatchment) task.adminAttatchment = [];
+          task.adminAttatchment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
+      }
+      await task.save();
       const project: Project | null = await projectSchema.findById({
         _id: task.project._id,
       });
@@ -329,20 +355,44 @@ class TaskServices {
       if (!updatedTask) {
         return next(new Error("Task not found"));
       }
-      if (req.files) {
-        const files = Array.isArray(req.files)
-          ? req.files
-          : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) =>
-          uploadToCloudinary(file),
-        );
-        const results = await Promise.all(uploadPromises);
-        if (!updatedTask!.attachments) updatedTask!.attachments = [];
-        updatedTask!.attachments.push(
-          ...results.map((r: CloudinaryUploadResult) => r),
-        );
-        await updatedTask!.save();
+      if (req.CurrentUser.role === "member") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!updatedTask.memberAttachment) updatedTask.memberAttachment = [];
+          updatedTask.memberAttachment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
       }
+      if (req.CurrentUser.role === "admin") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!updatedTask.adminAttatchment) updatedTask.adminAttatchment = [];
+          updatedTask.adminAttatchment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
+
+      }
+      await updatedTask.save();
       updatedTask.duration! =
         getDaysDifference(
           new Date(updatedTask.startDate),
@@ -379,7 +429,7 @@ class TaskServices {
         await updatedTask.save({ validateModifiedOnly: true });
       }
       res.status(200).json({ data: updatedTask });
-    },
+    }
   );
   updateStatus = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -389,7 +439,7 @@ class TaskServices {
       }
       if (task.task) {
         const parentTask = await taskSchema.findById(task.task)
-        if (task.status ==="In-progress") {
+        if (task.status === "In-progress") {
           if (parentTask?.status !== "Accepted") {
             return next(new Error("Parent Task is not Accepted"));
           }
@@ -402,7 +452,7 @@ class TaskServices {
       if (
         req.body.status === "Done" &&
         req.CurrentUser.role === "member" &&
-        task.memberFiles === false
+        task.memberAttachment?.length === 0
       ) {
         return next(
           new ErrorHandler(
@@ -413,29 +463,45 @@ class TaskServices {
       }
 
       // Process file uploads regardless of status
-      if (
-        req.files &&
-        (Array.isArray(req.files)
-          ? req.files.length > 0
-          : Object.keys(req.files).length > 0)
-      ) {
-        const files = Array.isArray(req.files)
-          ? req.files
-          : Object.values(req.files).flat();
-        const uploadPromises = files.map((file: Express.Multer.File) =>
-          uploadToCloudinary(file),
-        );
-        const results = await Promise.all(uploadPromises);
-        if (!task.attachments) task.attachments = [];
-        task.attachments.push(...results.map((r: CloudinaryUploadResult) => r));
-        if (req.CurrentUser.role === "member") {
-          task.memberFiles = true;
+
+      if (req.CurrentUser.role === "member") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!task.memberAttachment) task.memberAttachment = [];
+          task.memberAttachment.push(...results.map((r: CloudinaryUploadResult) => r));
         }
-        if (req.CurrentUser.role === "admin") {
-          task.adminFiles = true;
-        }
-        await task.save();
       }
+      if (req.CurrentUser.role === "admin") {
+        if (
+          req.files &&
+          (Array.isArray(req.files)
+            ? req.files.length > 0
+            : Object.keys(req.files).length > 0)
+        ) {
+          const files = Array.isArray(req.files)
+            ? req.files
+            : Object.values(req.files).flat();
+          const uploadPromises = files.map((file: Express.Multer.File) =>
+            uploadToCloudinary(file),
+          );
+          const results = await Promise.all(uploadPromises);
+          if (!task.adminAttatchment) task.adminAttatchment = [];
+          task.adminAttatchment.push(...results.map((r: CloudinaryUploadResult) => r));
+        }
+        
+      }
+      await task.save();
       if (
         isStatusUpdate &&
         requestedStatus !== "Pending" &&
@@ -595,7 +661,7 @@ class TaskServices {
       }
 
       res.status(200).json({ data: updatedTask, percent: percent });
-    },
+    }
   );
   getOne = AsyncHandler(
     async (req: Request, res: Response, next: NextFunction) => {
@@ -612,20 +678,75 @@ class TaskServices {
       if (!task) {
         return next(new Error("No Task "));
       }
-      const attachment = task.attachments?.find(
-        (a) => a.public_id === req.params.public_id,
-      );
-      if (!attachment) {
+
+      const { public_id } = req.params;
+      let foundInAdmin = false;
+      let foundInMember = false;
+      let attachmentToDelete: any = null;
+
+      // Check admin attachments if current user is admin
+      if (req.CurrentUser.role === "admin") {
+        attachmentToDelete = task.adminAttatchment?.find(
+          (a) => a.public_id === public_id,
+        );
+        if (attachmentToDelete) {
+          foundInAdmin = true;
+        }
+      }
+
+      // If not found in admin attachments, check member attachments (both admins and members can access memberAttachment)
+      if (!attachmentToDelete && (req.CurrentUser.role === "admin" || req.CurrentUser.role === "member")) {
+        attachmentToDelete = task.memberAttachment?.find(
+          (a) => a.public_id === public_id,
+        );
+        if (attachmentToDelete) {
+          foundInMember = true;
+        }
+      }
+
+      if (!attachmentToDelete) {
         return next(new Error("Attachment not found"));
       }
-      await cloudinary.uploader.destroy(attachment.public_id);
-      task.attachments = task.attachments?.filter(
-        (a) => a.public_id !== req.params.public_id,
-      );
+
+      // Delete from Cloudinary with the correct resource_type (raw, image, video, etc.)
+      await cloudinary.uploader.destroy(attachmentToDelete.public_id, {
+        resource_type: attachmentToDelete.resource_type || "image",
+      });
+
+      // Update local arrays
+      if (foundInAdmin) {
+        task.adminAttatchment = task.adminAttatchment?.filter(
+          (a) => a.public_id !== public_id,
+        );
+      }
+      if (foundInMember) {
+        task.memberAttachment = task.memberAttachment?.filter(
+          (a) => a.public_id !== public_id,
+        );
+      }
+
       await task.save();
       res.status(200).json({ data: task });
     },
   );
+  addNote = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const task = await taskSchema.findById(req.params.id)
+    if (!task) {
+      return next(new Error("No Task"))
+    }
+    task.note?.push(req.body.note)
+    await task.save()
+    res.status(200).json({ data: task })
+  })
+  deleteNote = AsyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+    const task = await taskSchema.findById(req.params.id)
+    if (!task) {
+      return next(new Error("No Task"))
+    }
+    task.note = task.note?.filter((note) => note !== req.body.note)
+    await task.save()
+    res.status(200).json({ data: task })
+  })
 }
 
 const taskServices = new TaskServices();

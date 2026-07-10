@@ -27,7 +27,7 @@ const ProjectSchema = new mongoose.Schema<Project>(
       default: "Active",
     },
     totalTasks: { type: Number, default: 0 },
-    attachments: [
+    adminAttatchment: [
       {
         public_id: { type: String }, // use this to delete the file later
         secure_url: { type: String }, // the public HTTPS URL

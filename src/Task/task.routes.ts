@@ -67,5 +67,17 @@ taskRouter.delete(
   auth.allowedRoles(["admin", "member"]),
   taskServices.deleteAttachment
 )
+taskRouter
+  .route("/:id/note")
+  .post(
+    auth.allowedRoles(["admin"]),
+    taskServices.addNote
+  )
+taskRouter
+  .route("/:id/note")
+  .delete(
+    auth.allowedRoles(["admin"]),
+    taskServices.deleteNote
+  )
 
 export default taskRouter;
